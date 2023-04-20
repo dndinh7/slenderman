@@ -28,13 +28,15 @@ uniform MaterialInfo Material;
 uniform sampler2D diffuseTexture;
 uniform bool HasUV;
 in vec2 uv;
-const float uvScale= 3.0f;
+
+uniform vec2 uvScale;
 
 out vec4 FragColor;
 
 vec3 phongSpot() {
   vec3 s;
   vec3 n= normalize(n_eye);
+
 
   if (Spot.pos.w == 0.0f) // directional light source
     s= normalize(vec3(Spot.pos));
@@ -57,15 +59,23 @@ vec3 phongSpot() {
   vec3 v= normalize(vec3(-p_eye)); // direction to camera
   vec3 h = normalize(v + s); // half way vector from 
 
+
   vec3 ambient= Spot.intensity * Material.Ka;
   vec3 diffuse= spotFactor * Spot.intensity * intensity * Material.Kd 
     * max(dot(s, n), 0.0f);
   vec3 specular= spotFactor * Spot.intensity * intensity * Material.Ks
     * pow(max(dot(h, n), 0.0f), Material.alpha);
 
+  if (HasUV) {
+    vec3 texColor= texture(diffuseTexture, uv*uvScale).xyz;
+    ambient= Spot.intensity * Material.Ka * texColor;
+    diffuse= spotFactor * Spot.intensity * intensity * texColor 
+      * max(dot(s, n), 0.0f);
+  }
+
   vec3 color;
   if (HasUV) {
-    color= (ambient + diffuse) * texture(diffuseTexture, uv * uvScale).xyz + specular;
+    color= (ambient + diffuse) + specular;
   } else {
     color= ambient + diffuse + specular;
   }

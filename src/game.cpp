@@ -40,7 +40,7 @@ class Viewer : public Window {
         "../shaders/only-color.fs");
 
       this->lightPosition= vec4(0.0f, 5.0f, 0.0f, 1.0f); 
-      this->lightIntensity= vec3(0.9f);
+      this->lightIntensity= vec3(0.75f);
 
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
@@ -66,14 +66,16 @@ class Viewer : public Window {
 
     void mouseMotion(int x, int y, int dx, int dy) {
       // we're subtracting because it's opposite to the eyePos
-      player.setCameraAzimuth(player.getCameraAzimuth() - ((float)dx) * 0.005f);
-      float elevation= player.getCameraElevation() - ((float)dy) * 0.005f;
+      if (keyIsDown(GLFW_KEY_LEFT_CONTROL)) {
+        player.setCameraAzimuth(player.getCameraAzimuth() - ((float)dx) * 0.01f);
+        float elevation= player.getCameraElevation() - ((float)dy) * 0.01f;
 
-      // clamp between (-pi/2, pi/2), don't want the bounds since it might lead to weird rotation
-      elevation= std::max(elevation, (float) (-M_PI/2) + 0.00001f);
-      elevation= std::min(elevation, (float) (M_PI/2)  - 0.00001f);
+        // clamp between (-pi/2, pi/2), don't want the bounds since it might lead to weird rotation
+        elevation= std::max(elevation, (float) (-M_PI/2) + 0.00001f);
+        elevation= std::min(elevation, (float) (M_PI/2)  - 0.00001f);
 
-      player.setCameraElevation(elevation);
+        player.setCameraElevation(elevation);
+      }
     }
 
     void mouseDown(int button, int mods) {
@@ -160,6 +162,36 @@ class Viewer : public Window {
       player.setZAxis(vec3(sin(azimuth), 0, cos(azimuth)));
     }
 
+    void initSpotlightShader() {
+      vec3 Ka= vec3(0.1f);
+      vec3 Kd= vec3(0.775f, 0.0f, 0.0f);
+      vec3 Ks= vec3(0.9f, 0.7f, 0.7f);
+
+      float shininess= 128.0f * 0.25f;
+
+      vec4 lightPos_eye= renderer.viewMatrix() * vec4(player.getPos(), 1.0f);
+      vec3 lightDir= renderer.viewMatrix() * vec4(normalize(player.getLookPos() - 
+        player.getPos()), 0.0f);
+
+      float lightExp= 1.0f;
+      float innerCutOff= cos(radians(7.5f));
+
+      float outerCutOff= cos(radians(17.5f));
+
+      renderer.setUniform("Spot.pos", lightPos_eye);
+      renderer.setUniform("Spot.intensity", lightIntensity);
+      renderer.setUniform("Spot.dir", lightDir);
+      renderer.setUniform("Spot.exp", lightExp);
+      renderer.setUniform("Spot.innerCutOff", innerCutOff);
+      renderer.setUniform("Spot.outerCutOff", outerCutOff);
+      
+      renderer.setUniform("Material.Ka", Ka);
+      renderer.setUniform("Material.Kd", Kd);
+      renderer.setUniform("Material.Ks", Ks);
+      renderer.setUniform("Material.alpha", shininess);
+      renderer.setUniform("uvScale", vec2(10.0f));
+    }
+
     void draw() {
       player.setCameraAspect(((float) width()) / height());
       renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
@@ -178,47 +210,12 @@ class Viewer : public Window {
       player.setCameraYAxis(yAxis);
       player.setCameraZAxis(zAxis);
 
-      updatePlayerPosition();
+      updatePlayerPosition();   
 
-      renderer.push();
-        renderer.translate(this->lightPosition);
-        renderer.scale(vec3(1.75f));
-        renderer.beginShader("only-color");
-          renderer.setUniform("color", lightIntensity);
-          renderer.cube();
-        renderer.endShader();
-      renderer.pop();
-      
-
-      
 
       // draw plane
       renderer.beginShader("spotlight");
-        vec3 Ka= vec3(0.1f);
-        vec3 Kd= vec3(0.775f, 0.0f, 0.0f);
-        vec3 Ks= vec3(0.9f, 0.7f, 0.7f);
-
-        float shininess= 128.0f * 0.25f;
-
-        vec4 lightPos_eye= renderer.viewMatrix() * this->lightPosition;
-        vec3 lightDir= renderer.viewMatrix() * vec4(normalize(vec3(0) - 
-          vec3(this->lightPosition)), 0.0f);
-
-        float lightExp= 1.0f;
-        float innerCutOff= cos(radians(15.0f));
-        float outerCutOff= cos(radians(22.5f));
-
-        renderer.setUniform("Spot.pos", lightPos_eye);
-        renderer.setUniform("Spot.intensity", lightIntensity);
-        renderer.setUniform("Spot.dir", lightDir);
-        renderer.setUniform("Spot.exp", lightExp);
-        renderer.setUniform("Spot.innerCutOff", innerCutOff);
-        renderer.setUniform("Spot.outerCutOff", outerCutOff);
-        
-        renderer.setUniform("Material.Ka", Ka);
-        renderer.setUniform("Material.Kd", Kd);
-        renderer.setUniform("Material.Ks", Ks);
-        renderer.setUniform("Material.alpha", shininess);
+        initSpotlightShader();
         renderer.texture("diffuseTexture", "dead_grass");
         renderer.push();
           renderer.translate(vec3(0.0, -0.5, 0));
