@@ -15,6 +15,8 @@ using namespace std;
 using namespace glm;
 using namespace agl;
 
+#define M_PI 3.14159265358979323846
+
 enum KEY {
   W_KEY, A_KEY, S_KEY, D_KEY
 };
@@ -67,8 +69,8 @@ class Viewer : public Window {
     void mouseMotion(int x, int y, int dx, int dy) {
       // we're subtracting because it's opposite to the eyePos
       if (keyIsDown(GLFW_KEY_LEFT_CONTROL)) {
-        player.setCameraAzimuth(player.getCameraAzimuth() - ((float)dx) * 0.01f);
-        float elevation= player.getCameraElevation() - ((float)dy) * 0.01f;
+        player.setCameraAzimuth(player.getCameraAzimuth() - ((float)dx) * 2.0f * dt());
+        float elevation= player.getCameraElevation() - ((float)dy) * 2.0f * dt();
 
         // clamp between (-pi/2, pi/2), don't want the bounds since it might lead to weird rotation
         elevation= std::max(elevation, (float) (-M_PI/2) + 0.00001f);
@@ -158,7 +160,7 @@ class Viewer : public Window {
 
       player.setLookPos(lookPos);
 
-      player.setXAxis(vec3(sin(azimuth + M_PI_2), 0, cos(azimuth + M_PI_2)));
+      player.setXAxis(vec3(sin(azimuth + M_PI/2), 0, cos(azimuth + M_PI/2)));
       player.setZAxis(vec3(sin(azimuth), 0, cos(azimuth)));
     }
 
