@@ -81,15 +81,33 @@ endif()
 include_directories(${INCLUDE_DIRS})
 link_directories(${LIBRARY_DIRS})
 
-file(GLOB SOURCES "src/agl/*.h" "src/agl/*.cpp" "src/agl/mesh/*.h" "src/agl/mesh/*.cpp") 
+file(GLOB AGLSRC "src/agl/*.h" "src/agl/*.cpp" "src/agl/mesh/*.h" "src/agl/mesh/*.cpp") 
+
+set(SOURCES
+    ${AGLSRC}
+    src/plymesh.cpp
+    src/plymesh.h
+    src/osutils.h
+    src/osutils.cpp
+    src/entities/entity.h
+    src/entities/enemy.h
+    src/entities/player.h
+    src/objects/object.h
+    )
 
 set(SHADERS
+    shaders/spotlight.vs
+    shaders/spotlight.fs
+    shaders/fog.vs
+    shaders/fog.fs
+    shaders/phong-pixel.vs
+    shaders/phong-pixel.fs
     shaders/unlit.vs
     shaders/unlit.fs
     )
 
-add_executable(demo src/demo.cpp ${SOURCES} ${SHADERS})
-target_link_libraries(demo ${CORE})
+add_executable(game src/game.cpp ${SOURCES} ${SHADERS})
+target_link_libraries(game ${CORE})
 
 if (WIN32)
   source_group("shaders" FILES ${SHADERS})
