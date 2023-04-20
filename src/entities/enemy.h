@@ -8,17 +8,19 @@
 using namespace glm;
 using namespace agl;
 
-class Enemy: public Entity {
-  public:
-    Enemy(): Entity(vec3(0), vec3(0,0,1)) {};
+namespace assets {
+  class Enemy: public Entity {
+    public:
+      Enemy(): Entity(vec3(0), vec3(0,0,1)) {};
 
-    Enemy(vec3 pos, vec3 dir, PLYMesh mesh, std::string texture) : 
-      Entity(pos, dir), mesh(mesh), texture(texture) {};
+      Enemy(vec3 pos, vec3 dir, PLYMesh mesh, std::string texture) : 
+        Entity(pos, dir), mesh(mesh), texture(texture) {};
 
-  private:
-    PLYMesh mesh;
-    std::string texture;
-};
+    private:
+      PLYMesh mesh;
+      std::string texture;
+  };
+}
 
 
 #endif

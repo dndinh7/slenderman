@@ -14,6 +14,7 @@
 using namespace std;
 using namespace glm;
 using namespace agl;
+using namespace assets;
 
 #define M_PI 3.14159265358979323846
 

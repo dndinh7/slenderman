@@ -25,61 +25,63 @@ struct CameraInfo {
 };
 
 // class is the player object, also holds information about the camera
-class Player: public Entity {
-  public:
-    Player(): Entity(vec3(0), vec3(0,0,1)) {};
+namespace assets {
+  class Player: public Entity {
+    public:
+      Player(): Entity(vec3(0), vec3(0,0,1)) {};
 
-    Player(vec3 pos, vec3 dir) :
-      Entity(pos, dir) {};
+      Player(vec3 pos, vec3 dir) :
+        Entity(pos, dir) {};
 
-    Player(vec3 pos, vec3 dir, CameraInfo camera) : 
-      Entity(pos, dir), camera(camera) {};
-    
-    void moveLeft(float dt) { this->pos= this->pos + velocity * dt * xAxis; };
-    void moveRight(float dt) { this->pos= this->pos - velocity * dt * xAxis; };
+      Player(vec3 pos, vec3 dir, CameraInfo camera) : 
+        Entity(pos, dir), camera(camera) {};
+      
+      void moveLeft(float dt) { this->pos= this->pos + velocity * dt * xAxis; };
+      void moveRight(float dt) { this->pos= this->pos - velocity * dt * xAxis; };
 
-    void moveForward(float dt) { this->pos= this->pos + velocity * dt * zAxis; };
-    void moveBackward(float dt) { this->pos= this->pos - velocity * dt * zAxis; };
+      void moveForward(float dt) { this->pos= this->pos + velocity * dt * zAxis; };
+      void moveBackward(float dt) { this->pos= this->pos - velocity * dt * zAxis; };
 
-    void setHealth(int health) { this->health= health; };
-    int getHealth() { return this->health; };
+      void setHealth(int health) { this->health= health; };
+      int getHealth() { return this->health; };
 
-    float getVelocity() { return this->velocity; };
-    void  setVelocity(float velocity) { this->velocity= velocity; };
+      float getVelocity() { return this->velocity; };
+      void  setVelocity(float velocity) { this->velocity= velocity; };
 
-    float getCameraFOV() { return this->camera.FOV; };
-    float getCameraAspect() { return this->camera.aspect; };
-    float getCameraNear() { return this->camera.near; };
-    float getCameraFar() { return this->camera.far; };
-    vec3  getCameraUp() { return this->camera.up; };
-    float getCameraAzimuth() { return this->camera.azimuth; };
-    float getCameraElevation() { return this->camera.elevation; };
-    float getLookRadius() { return this->camera.radius; };
-    vec3  getCameraXAxis() { return this->camera.xAxis; };
-    vec3  getCameraYAxis() { return this->camera.yAxis; };
-    vec3  getCameraZAxis() { return this->camera.zAxis; };
+      float getCameraFOV() { return this->camera.FOV; };
+      float getCameraAspect() { return this->camera.aspect; };
+      float getCameraNear() { return this->camera.near; };
+      float getCameraFar() { return this->camera.far; };
+      vec3  getCameraUp() { return this->camera.up; };
+      float getCameraAzimuth() { return this->camera.azimuth; };
+      float getCameraElevation() { return this->camera.elevation; };
+      float getLookRadius() { return this->camera.radius; };
+      vec3  getCameraXAxis() { return this->camera.xAxis; };
+      vec3  getCameraYAxis() { return this->camera.yAxis; };
+      vec3  getCameraZAxis() { return this->camera.zAxis; };
 
-    void setCameraFOV(float FOV) { this->camera.FOV= FOV; };
-    void setCameraAspect(float aspect) { this->camera.aspect= aspect; };
-    void setCameraNear(float near) { this->camera.near= near; };
-    void setCameraFar(float far) { this->camera.far= far; };
-    void setCameraUp(vec3 up) { this->camera.up= up; };
-    void setCameraAzimuth(float azimuth) { this->camera.azimuth= azimuth; };
-    void setCameraElevation(float elevation) { this->camera.elevation= elevation; };
-    void setLookRadius(float radius) { this->camera.radius= radius; };
-    void setCameraXAxis(vec3 xAxis) { this->camera.xAxis= xAxis; };
-    void setCameraYAxis(vec3 yAxis) { this->camera.yAxis= yAxis; };
-    void setCameraZAxis(vec3 zAxis) { this->camera.zAxis= zAxis; };
+      void setCameraFOV(float FOV) { this->camera.FOV= FOV; };
+      void setCameraAspect(float aspect) { this->camera.aspect= aspect; };
+      void setCameraNear(float near) { this->camera.near= near; };
+      void setCameraFar(float far) { this->camera.far= far; };
+      void setCameraUp(vec3 up) { this->camera.up= up; };
+      void setCameraAzimuth(float azimuth) { this->camera.azimuth= azimuth; };
+      void setCameraElevation(float elevation) { this->camera.elevation= elevation; };
+      void setLookRadius(float radius) { this->camera.radius= radius; };
+      void setCameraXAxis(vec3 xAxis) { this->camera.xAxis= xAxis; };
+      void setCameraYAxis(vec3 yAxis) { this->camera.yAxis= yAxis; };
+      void setCameraZAxis(vec3 zAxis) { this->camera.zAxis= zAxis; };
 
-  private:
-    int health= 100; // player should always start with 100 health
-    float velocity= 1.0f;
-    
-    CameraInfo camera;
+    private:
+      int health= 100; // player should always start with 100 health
+      float velocity= 1.0f;
+      
+      CameraInfo camera;
 
-    //Object hand;
-    //Object flashlight;
-};
+      //Object hand;
+      //Object flashlight;
+  };
+}
 
 
 #endif
