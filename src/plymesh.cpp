@@ -50,6 +50,7 @@ namespace agl {
     this->_positions.clear();
     this->_normals.clear();
     this->_faces.clear();
+		this->_texCoords.clear();
   }
 
   bool PLYMesh::load(const std::string& filename) {
@@ -226,6 +227,7 @@ namespace agl {
       }
       file.close();
     }
+
     return true;
   }
 

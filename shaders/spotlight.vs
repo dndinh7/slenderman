@@ -8,7 +8,6 @@ layout (location = 2) in vec2 vTextureCoords;
 uniform mat3 NormalMatrix;
 uniform mat4 ModelViewMatrix;
 uniform mat4 MVP;
-uniform bool HasUV;
 
 out vec3 n_eye;
 out vec4 p_eye;
@@ -21,8 +20,6 @@ void main()
   n_eye= normalize(NormalMatrix * vNormals);
   p_eye= ModelViewMatrix * vec4(vPos, 1.0);
 
-  uv= vTextureCoords;
-  
   uv= vTextureCoords;
 
   gl_Position = MVP * vec4(vPos, 1.0);

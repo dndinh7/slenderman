@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <map>
 #include "agl/window.h"
 #include "plymesh.h"
 #include "osutils.h"
@@ -48,10 +49,29 @@ class Viewer : public Window {
     	return rand() / float(RAND_MAX) * (upperBound - lowerBound) + lowerBound;
   	}
 
-		void initFlashlight() {
-			
+		void initPlayerFlashlight() {
+			Object flashlight= Object();
+			flashlight.mesh= models["flashlight-uv"];
+			renderer.loadTexture("flashlightTex", "../textures/flashlight.jpg", 0);
+			flashlight.texture= "flashlightTex";
+
+			flashlight.scale= vec3(1);
+			player.appendChild(flashlight);
 		}
 
+		void initModels() {
+			std::vector<string> modelStrings= GetFilenamesInDir("../models", "ply");
+			for (int i= 0; i < modelStrings.size(); i++) {
+				string s= modelStrings[i];
+				// does not get the extension for the key value
+				models[s.substr(0, s.size()-4)]= PLYMesh("../models/" + s);
+
+				if (models["flashlight-uv"].hasUV()) {
+					cout << "hi" << endl;
+				}
+			}
+		}
+		
 		void initTrees() {
 			Image img;
 			float treeRatios[2];
@@ -167,6 +187,10 @@ class Viewer : public Window {
 
     void setup() {
       setWindowSize(1000, 1000);
+				 
+      renderer.loadShader("simple-texture",
+        "../shaders/simple-texture.vs",
+        "../shaders/simple-texture.fs");
 
       renderer.loadShader("spotlight",
         "../shaders/spotlight.vs",
@@ -189,11 +213,12 @@ class Viewer : public Window {
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
 			initGrass();
-			initTrees();
+			//initTrees();
 
-			billboards.reserve(numTrees + numGrass);
+			//billboards.reserve(numTrees + numGrass);
+			billboards.reserve(numGrass);
 			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
-			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
+			//billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
 
       // init camera
       CameraInfo camera;
@@ -211,8 +236,13 @@ class Viewer : public Window {
       // init player and slenderman
       player= Player(vec3(0), vec3(0,0,1), camera);
 
-      PLYMesh enemyMesh= PLYMesh();
-      slenderman= Enemy(vec3(1), vec3(0), enemyMesh, "placeholder"); 
+      //PLYMesh enemyMesh= PLYMesh();
+      //slenderman= Enemy(vec3(1), vec3(0), enemyMesh, "placeholder"); 
+
+			initModels();
+			initPlayerFlashlight();
+
+
     }
 
     void mouseMotion(int x, int y, int dx, int dy) {
@@ -331,7 +361,7 @@ class Viewer : public Window {
       player.setZAxis(vec3(sin(azimuth), 0, cos(azimuth)));
     }
 
-    void initSpotlightShader(std::string texture, vec2 uvScale) {
+    void initSpotlightShader(const std::string& texture, vec2 uvScale) {
       vec3 Ka= vec3(0.1f);
       vec3 Kd= vec3(0.775f, 0.0f, 0.0f);
       vec3 Ks= vec3(0.1f, 0.1f, 0.1f);
@@ -399,6 +429,26 @@ class Viewer : public Window {
 
 			drawBillboards();
 
+
+			renderer.beginShader("simple-texture");
+				for (Object child: player.getChildren()) {
+					renderer.texture("Image", child.texture);
+					if (child.mesh.hasUV()) { 
+						std::cout << "hasUV" << std::endl;
+					}
+					renderer.push();
+						renderer.push();
+							renderer.translate(vec3(0, 2, 0));
+							//renderer.rotate(child.rot);
+							renderer.scale(child.scale);
+							renderer.translate(-child.getMidPoint());
+							renderer.mesh(child.mesh);
+
+						renderer.pop();
+
+					renderer.pop();
+				}
+			renderer.endShader();
 		
     }
 
@@ -432,6 +482,12 @@ class Viewer : public Window {
 
 		// billboard information
 		vector<Billboard> billboards;
+
+		// model information
+		std::map<string, PLYMesh> models;
+
+		enum GameStatus {WIN, LOSE, ONGOING};
+		GameStatus gameStatus= ONGOING;
 };
 
 int main(int argc, char** argv)

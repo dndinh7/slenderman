@@ -115,6 +115,7 @@ void Mesh::initBuffers(
   }
 
   glBindVertexArray(0);
+
 }
 
 Mesh::~Mesh() {

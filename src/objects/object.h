@@ -21,14 +21,22 @@ struct Object {
     Object(vec3 pos, vec3 dir, vec3 scale, float rot, PLYMesh mesh, std::string texture) : 
       pos(pos), dir(dir), rot(rot), scale(scale), mesh(mesh), texture(texture) {};
 
+		void appendChild(Object obj) { children.push_back(obj); }
 
-    vec3 pos;
-    vec3 dir;
-		vec3 scale;
-		float rot;
+		vec3 getMinBounds() { return mesh.minBounds(); };
+		vec3 getMaxBounds() { return mesh.maxBounds(); };
+
+		vec3 getMidPoint() { return (mesh.maxBounds() - mesh.minBounds()) * 0.5f; };
+
+    vec3 pos= vec3(0, 0, 0);
+    vec3 dir= vec3(0, 0, 1);
+		vec3 scale= vec3(1);
+		float rot= 0.0;
 
     PLYMesh mesh;
     std::string texture;
+
+		std::vector<Object> children;
 };
 
 

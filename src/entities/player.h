@@ -72,6 +72,9 @@ namespace assets {
       void setCameraYAxis(vec3 yAxis) { this->camera.yAxis= yAxis; };
       void setCameraZAxis(vec3 zAxis) { this->camera.zAxis= zAxis; };
 
+			void appendChild(Object obj) { children.push_back(obj); }
+			std::vector<Object> getChildren() { return this->children; };
+
     private:
       int health= 100; // player should always start with 100 health
       float velocity= 1.0f;
@@ -79,7 +82,7 @@ namespace assets {
       CameraInfo camera;
 
       //Object hand;
-      Object flashlight;
+      std::vector<Object> children;
   };
 }
 
