@@ -1,4 +1,3 @@
-
 #version 400
 
 in vec3 n_eye;
@@ -6,7 +5,9 @@ in vec4 p_eye;
 
 struct Spotlight {
   vec4 pos; // where the light is located
-  vec3 intensity; // light intensity
+  vec3 intensityAmbient; // light intensity
+  vec3 intensityDiffuse; // light intensity
+  vec3 intensitySpecular; // light intensity
   vec3 dir; // direction of light
   float exp; // angular attenuation factor
   float innerCutOff; // this is a inner cut off of the spotlight
@@ -33,7 +34,7 @@ uniform vec2 uvScale;
 
 out vec4 FragColor;
 
-vec3 phongSpot() {
+vec4 phongSpot() {
   vec3 s;
   vec3 n= normalize(n_eye);
 
@@ -60,17 +61,20 @@ vec3 phongSpot() {
   vec3 h = normalize(v + s); // half way vector from 
 
 
-  vec3 ambient= Spot.intensity * Material.Ka;
-  vec3 diffuse= spotFactor * Spot.intensity * intensity * Material.Kd 
+  vec3 ambient= Spot.intensityAmbient * Material.Ka;
+  vec3 diffuse= spotFactor * Spot.intensityDiffuse * intensity * Material.Kd 
     * max(dot(s, n), 0.0f);
-  vec3 specular= spotFactor * Spot.intensity * intensity * Material.Ks
+  vec3 specular= spotFactor * Spot.intensitySpecular * intensity * Material.Ks
     * pow(max(dot(h, n), 0.0f), Material.alpha);
 
+	float alpha= 1.0f; // default 1.0 for non textured meshes
   if (HasUV) {
-    vec3 texColor= texture(diffuseTexture, uv*uvScale).xyz;
-    ambient= Spot.intensity * Material.Ka * texColor;
-    diffuse= spotFactor * Spot.intensity * intensity * texColor 
+    vec4 texColor= texture(diffuseTexture, uv*uvScale);
+    ambient= Spot.intensityAmbient * Material.Ka * texColor.xyz;
+    diffuse= spotFactor * Spot.intensityDiffuse * intensity * texColor.xyz 
       * max(dot(s, n), 0.0f);
+
+		alpha= texColor.w;
   }
 
   vec3 color;
@@ -80,13 +84,11 @@ vec3 phongSpot() {
     color= ambient + diffuse + specular;
   }
 
-
-
-  return color;
+  return vec4(color, alpha);
 }
 
 void main()
 {
   
-  FragColor = vec4(phongSpot(), 1.0f);
+  FragColor = phongSpot();
 }

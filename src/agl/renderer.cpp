@@ -30,7 +30,7 @@ using glm::quat;
 using std::string;
 using std::vector;
 
-int Renderer::PrimitiveSubdivision = 32;
+int Renderer::PrimitiveSubdivision = 8;
 
 Renderer::Renderer() {
   _cube = 0;
@@ -80,6 +80,9 @@ void Renderer::cleanup() {
   _sphere = 0;
   _skybox = 0;
 
+  glDeleteBuffers(3, mBBVboIds);
+  glDeleteBuffers(2, mVboLineIds);
+
   for (auto it : _shaders) {
     delete it.second;
   }
@@ -95,6 +98,12 @@ bool Renderer::initialized() const {
 
 vec3 Renderer::cameraPosition() const {
   return _lookfrom;
+}
+
+
+void Renderer::setDepthTest(bool b) {
+  if (b) glEnable(GL_DEPTH_TEST);
+  else glDisable(GL_DEPTH_TEST);
 }
 
 void Renderer::init() {
@@ -126,7 +135,7 @@ void Renderer::init() {
   _trs = mat4(1.0);
   _initialized = true;
 
-  beginShader("unlit");  // unlit is default
+  beginShader("unlit");  
 }
 
 void Renderer::initLines() {
@@ -136,23 +145,22 @@ void Renderer::initLines() {
     1.0f, 0.0f, 0.0f
   };
 
-  glGenBuffers(1, &mVboLinePosId);
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLinePosId);
+  glGenBuffers(2, mVboLineIds);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[0]);
   glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_DYNAMIC_DRAW);
 
-  glGenBuffers(1, &mVboLineColorId);
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLineColorId);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[1]);
   glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_DYNAMIC_DRAW);
 
   glGenVertexArrays(1, &mVaoLineId);
   glBindVertexArray(mVaoLineId);
 
   glEnableVertexAttribArray(0);  // 0 -> VertexPositions to array #0
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLinePosId);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[0]);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, static_cast<GLubyte*>(0));
 
   glEnableVertexAttribArray(1);  // 1 -> VertexPositions to array #1
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLineColorId);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[1]);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, static_cast<GLubyte*>(0));
 }
 
@@ -167,16 +175,50 @@ void Renderer::initBillboards() {
      0.0f, 1.0f, 0.0f,
   };
 
-  glGenBuffers(1, &mBBVboPosId);
-  glBindBuffer(GL_ARRAY_BUFFER, mBBVboPosId);
+  const float normals[] = {
+     0.0f, 0.0f, 1.0f,
+     0.0f, 0.0f, 1.0f,
+     0.0f, 0.0f, 1.0f,
+
+     0.0f, 0.0f, 1.0f,
+     0.0f, 0.0f, 1.0f,
+     0.0f, 0.0f, 1.0f,
+  };
+
+  const float uvs[] = {
+     0.0f, 0.0f, 
+     1.0f, 0.0f, 
+     0.0f, 1.0f, 
+
+     1.0f, 0.0f, 
+     1.0f, 1.0f, 
+     0.0f, 1.0f, 
+  };
+
+  glGenBuffers(3, mBBVboIds);
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[0]);
   glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), positions, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[1]);
+  glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), normals, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[2]); // uvs
+  glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), uvs, GL_STATIC_DRAW);
 
   glGenVertexArrays(1, &mBBVaoId);
   glBindVertexArray(mBBVaoId);
 
   glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, mBBVboPosId);  // bind before setting data
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[0]);  // bind before setting data
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, static_cast<GLubyte*>(0));
+
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[1]);  // bind before setting data
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, static_cast<GLubyte*>(0));
+
+  glEnableVertexAttribArray(2);
+  glBindBuffer(GL_ARRAY_BUFFER, mBBVboIds[2]);  // bind before setting data
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, static_cast<GLubyte*>(0));
 
   loadShader("sprite",
       "../shaders/billboard.vs",
@@ -199,36 +241,44 @@ void Renderer::initText() {
     _fontSize = 20.0;
 }
 
-void Renderer::cullMode(CullMode mode) {
-  if (mode == NONE) {
-    glDisable(GL_CULL_FACE);
-  }
-  else if (mode == FRONT) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-  }
-  else if (mode == BACK) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-  }
-  else if (mode == FRONT_AND_BACK) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT_AND_BACK);
-  }
-}
-
 void Renderer::blendMode(BlendMode mode) {
   if (mode == ADD) {
     _blendMode = ADD;
     glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);  // Additive blend
-
-  } else if (mode == BLEND) {
+  } 
+  else if (mode == BLEND) {
     _blendMode = BLEND;
     glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Alpha blend
-
-  } else {
+  } 
+  else if (mode == SUBTRACT) {
+    _blendMode = BLEND;
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_SUBTRACT);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);  
+  } 
+  else if (mode == MULTIPLY) {
+    _blendMode = BLEND;
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_DST_COLOR, GL_ZERO);  
+  } 
+  else if (mode == DARKEST) {
+    _blendMode = BLEND;
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_MIN);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);  
+  } 
+  else if (mode == LIGHTEST) {
+    _blendMode = BLEND;
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_MAX);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);  
+  } 
+  else {
     _blendMode = DEFAULT;
     glDisable(GL_BLEND);
   }
@@ -326,17 +376,35 @@ void Renderer::line(const glm::vec3& p1, const glm::vec3& p2,
   colors[5] = c2.z;
 
   glBindVertexArray(mVaoLineId);
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLinePosId);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[0]);
   glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_DYNAMIC_DRAW);
 
-  glBindBuffer(GL_ARRAY_BUFFER, mVboLineColorId);
+  glBindBuffer(GL_ARRAY_BUFFER, mVboLineIds[1]);
   glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), colors, GL_DYNAMIC_DRAW);
 
   glDrawArrays(GL_LINES, 0, 2);
 }
 
+void Renderer::quad() {
+  assert(_initialized);
+
+  mat4 mv = _viewMatrix * _trs;
+  mat4 mvp = _projectionMatrix * mv;
+  mat3 nmv = transpose(inverse(mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2]))));
+
+  setUniform("MVP", mvp);
+  setUniform("ModelViewMatrix", mv);
+  setUniform("NormalMatrix", nmv);
+  setUniform("ModelMatrix", _trs);
+  setUniform("HasUV", true);
+
+  glBindVertexArray(mBBVaoId);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+
 void Renderer::sprite(const glm::vec3& pos,
-    const glm::vec4& color, float size) {
+    const glm::vec4& color, float size, float rot) {
   assert(_initialized);
 
   mat4 mvp = _projectionMatrix * _viewMatrix * _trs;
@@ -345,6 +413,7 @@ void Renderer::sprite(const glm::vec3& pos,
   setUniform("Offset", pos);
   setUniform("Color", color);
   setUniform("Size", size);
+  setUniform("Rot", rot);
 
   glBindVertexArray(mBBVaoId);
   glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -439,15 +508,11 @@ void Renderer::mesh(const Mesh& mesh) {
   mat4 mv = _viewMatrix * _trs;
   mat4 mvp = _projectionMatrix * mv;
   mat3 nmv = transpose(inverse(mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2]))));
-  mat3 nm = transpose(inverse(mat3(vec3(_trs[0]), vec3(_trs[1]), vec3(_trs[2]))));
 
   setUniform("MVP", mvp);
   setUniform("ModelViewMatrix", mv);
   setUniform("NormalMatrix", nmv);
-  setUniform("ViewMatrix", _viewMatrix);
-  setUniform("ProjectionMatrix", _projectionMatrix);
   setUniform("ModelMatrix", _trs);
-  setUniform("ModelInverseTransposeMatrix", nm);
   setUniform("HasUV", mesh.hasUV());
 
   mesh.render();
@@ -647,14 +712,14 @@ void Renderer::loadShader(const std::string& name,
 
   Shader* shader = new Shader();
 
-  std::cout << "Compiling: " << vs << std::endl;
+  //std::cout << "Compiling: " << vs << std::endl;
   shader->compileShader(vs);
 
-  std::cout << "Compiling: " << fs << std::endl;
+  //std::cout << "Compiling: " << fs << std::endl;
   shader->compileShader(fs);
 
   shader->link();
-  std::cout << "Loaded shader: " << name << std::endl;
+  //std::cout << "Loaded shader: " << name << std::endl;
 
   _shaders[name] = shader;
 }
@@ -746,60 +811,5 @@ void Renderer::loadRenderTexture(const std::string& name,
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Renderer::loadDepthTexture(const std::string& name,
-    int slot, int width, int height) {
-  if (slot == GLFONS_FONT_TEXTURE_SLOT) {
-    std::cout << "WARNING: slot " << slot << " conflicts with font texture\n";
-  }
-
-  GLfloat border[] = { 1.0f, 0.0f, 0.0f, 0.0f };
-
-  // Create the texture object
-  GLuint depthTex;
-  glGenTextures(1, &depthTex);
-  glActiveTexture(GL_TEXTURE0 + slot);  // put in given slot!!
-  glBindTexture(GL_TEXTURE_2D, depthTex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT,
-      GL_UNSIGNED_BYTE, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
-  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
-
-  // save texture as an available texture object with the same name
-  _textures[name] = Texture{depthTex, slot};
-
-  // Generate and bind the framebuffer
-  GLuint depthFbo;
-  glGenFramebuffers(1, &depthFbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, depthFbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-      GL_TEXTURE_2D, depthTex, 0);
-
-  // Set the targets for the fragment output variables
-  GLenum drawBuffers[] = {GL_NONE};
-  glDrawBuffers(1, drawBuffers);
-
-  GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if( result != GL_FRAMEBUFFER_COMPLETE) {
-    std::cout << "Framebuffer error: " << result << std::endl;
-  }
-
-  RenderTexture target; // todo
-  target.handleId = depthFbo;
-  target.textureId = depthTex;
-  target.depthId = -1;
-  target.slot = slot;
-  target.width = width;
-  target.height = height;
-  _renderTextures[name] = target;
-
-  // unbind fbo and revert to default (the screen)
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
 
 }  // namespace agl
-

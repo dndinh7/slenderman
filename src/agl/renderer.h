@@ -18,36 +18,25 @@ namespace agl {
  * @brief Mode for combining colors when drawing
  *
  * The alpha component controls how colors will be combined based on the
- * current mode
+ * current mode. c is the incoming color. cDst is the current color
  *
  * * *DEFAULT* Ignore alpha and draw all objects as opaque
- * * *ADD* Add colors using formula: cSrc + c * c.alpha
- * * *BLEND* Blend colors using formula: cSrc * alpha + c * (1 - c.alpha)
+ * * *ADD* Add colors using formula: cDst + c * c.alpha
+ * * *BLEND* Blend colors using formula: c * c.alpha + cDst * (1 - c.alpha)
+ * * *SUBTRACT* Blend colors using formula: c * c.alpha - cDst
+ * * *MULTIPLY* Blend colors using formula: c * cDst
+ * * *LIGHTEST* Blend colors using formula: min(c * c.alpha, cDst)
+ * * *DARKEST* Blend colors using formula: max(c * c.alpha, cDst)
  * @verbinclude sprites.cpp
  */
 enum BlendMode {
   DEFAULT,
   ADD,
-  BLEND
-};
-
-/**
- * @brief Mode for drawing polygons
- *
- * The cull model determines whether front or back facing polygons 
- * are drawn. Front-facing polygons have their vertices listed in 
- * counter-clockwise (CC) order 
- *
- * * *NONE*: No culling
- * * *FRONT*: Only front facing polygons are drawn (Default)
- * * *BACK*: Only back facing polygons are drawn 
- * * *FRONT_AND_BACK*: Both front and back facing polygons are drawn
- */
-enum CullMode {
-  NONE,
-  FRONT,
-  BACK,
-  FRONT_AND_BACK
+  BLEND,
+  SUBTRACT,
+  MULTIPLY,
+  DARKEST,
+  LIGHTEST
 };
 
 /**
@@ -173,12 +162,6 @@ class Renderer {
    * @verbinclude select_drag.cpp
    */
   glm::mat4 viewMatrix() const { return _viewMatrix; }
-
-  /**
-   * @brief Get the current transform matrix
-   */
-  glm::mat4 transformMatrix() const { return _trs; }
-
   ///@}
 
   /** @name Shaders
@@ -259,21 +242,6 @@ class Renderer {
    * @verbinclude render_texture.cpp
    */
   void loadRenderTexture(const std::string& name, int slot,
-      int width, int height);
-
-  /**
-   * @brief Load and configure a render texture target for depth only
-   * @name The name of the render target and corresponding render texture. Use
-   * this name to activate the target and to use the rendered texture later.
-   * @slot The texture slot associated with the rendered texture
-   * @width The width in pixels of the rendered texture
-   * @height The height in pixels of the rendered texture
-   *
-   * @see beginRenderTexture
-   * @see endRenderTexture
-   * @verbinclude shadows.cpp
-   */
-  void loadDepthTexture(const std::string& name, int slot,
       int width, int height);
 
   /**
@@ -464,7 +432,7 @@ class Renderer {
    * @param xyz The direction to move the object.
    *
    * Moves the object in each of the XYZ directions. For example, an
-   * x-component of 10 will move the object in the positive X direction
+   * x-component of 10 will move the object in the positive X direction.
    * Transformations are relative to the current position, size, and rotation
    * of the object.
    * @verbinclude translate.cpp
@@ -519,18 +487,14 @@ class Renderer {
   void blendMode(BlendMode mode);
 
   /**
-   * @brief Culling mode for drawing polygon faces
+   * @brief Enable/sidable depth testing
    *
-   * The cull model determines whether front or back facing polygons 
-   * are drawn. Front-facing polygons have their vertices listed in 
-   * counter-clockwise (CC) order 
-   *
-   * * *NONE*: No culling
-   * * *FRONT*: Only front facing polygons are drawn (Default)
-   * * *BACK*: Only back facing polygons are drawn 
-   * * *FRONT_AND_BACK*: Both front and back facing polygons are drawn
+   * * *DEFAULT* Ignore alpha and draw all objects as opaque
+   * * *ADD* Add colors using formula: cSrc + c * c.alpha
+   * * *ALPHA* Blend colors using formula: cSrc * alpha + c * (1 - c.alpha)
+   * @verbinclude sprites.cpp
    */
-  void cullMode(CullMode mode);
+  void setDepthTest(bool b);
 
   /** @name Drawing
    */
@@ -543,7 +507,7 @@ class Renderer {
    *
    * @verbinclude sprites.cpp
    */
-  void sprite(const glm::vec3& pos, const glm::vec4& color, float size);
+  void sprite(const glm::vec3& pos, const glm::vec4& color, float size, float rot = 0.0f);
 
   /**
    * @brief Draws a sprite using a point billboard
@@ -666,12 +630,17 @@ class Renderer {
    * @see PointMesh
    */
   void mesh(const Mesh& m);
+
+  /**
+   * @brief Draws a 2D quad
+   *
+   */
+  void quad();
   ///@}
 
  private:
   void initBillboards();
   void initLines();
-  void initMesh();
   void initText();
 
  private:
@@ -724,12 +693,11 @@ class Renderer {
   class SkyBox* _skybox;
 
   // Quad
-  GLuint mBBVboPosId;
+  GLuint mBBVboIds[3];
   GLuint mBBVaoId;
 
   // Line
-  GLuint mVboLinePosId;
-  GLuint mVboLineColorId;
+  GLuint mVboLineIds[2];
   GLuint mVaoLineId;
 
   // Text
