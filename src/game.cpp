@@ -48,6 +48,10 @@ class Viewer : public Window {
     	return rand() / float(RAND_MAX) * (upperBound - lowerBound) + lowerBound;
   	}
 
+		void initFlashlight() {
+			
+		}
+
 		void initTrees() {
 			Image img;
 			float treeRatios[2];

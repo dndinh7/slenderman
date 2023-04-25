@@ -16,9 +16,13 @@ namespace assets {
       Enemy(vec3 pos, vec3 dir, PLYMesh mesh, std::string texture) : 
         Entity(pos, dir), mesh(mesh), texture(texture) {};
 
+
     private:
       PLYMesh mesh;
       std::string texture;
+
+			vec3 scale= vec3(0);
+			float rot= 0.0f;
   };
 }
 

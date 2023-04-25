@@ -14,21 +14,18 @@
 using namespace agl;
 using namespace glm;
 
-class Object {
+struct Object {
   public:
-    Object(vec3 pos, vec3 dir, PLYMesh mesh, std::string texture) : 
-      pos(pos), dir(dir), mesh(mesh), texture(texture) {};
+		Object() : pos(vec3(0)), dir(vec3(0)), texture(""), rot(0.0), scale(vec3(1)) {};
 
-    vec3 getPos() { return this->pos; }
-    vec3 getDir() { return this->dir; }
-    void setPos(vec3 pos) { this->pos= pos; }
-    void setDir(vec3 dir) { this->dir= dir; }
+    Object(vec3 pos, vec3 dir, vec3 scale, float rot, PLYMesh mesh, std::string texture) : 
+      pos(pos), dir(dir), rot(rot), scale(scale), mesh(mesh), texture(texture) {};
 
-    PLYMesh getMesh() { return this->mesh; }
-    std::string getTextureKey() { return this->texture; }
-  protected:   
+
     vec3 pos;
     vec3 dir;
+		vec3 scale;
+		float rot;
 
     PLYMesh mesh;
     std::string texture;

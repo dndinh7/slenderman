@@ -79,7 +79,7 @@ namespace assets {
       CameraInfo camera;
 
       //Object hand;
-      //Object flashlight;
+      Object flashlight;
   };
 }
 
