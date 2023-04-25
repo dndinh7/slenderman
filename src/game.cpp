@@ -65,10 +65,6 @@ class Viewer : public Window {
 				string s= modelStrings[i];
 				// does not get the extension for the key value
 				models[s.substr(0, s.size()-4)]= PLYMesh("../models/" + s);
-
-				if (models["flashlight-uv"].hasUV()) {
-					cout << "hi" << endl;
-				}
 			}
 		}
 		
@@ -431,11 +427,8 @@ class Viewer : public Window {
 
 
 			renderer.beginShader("simple-texture");
-				for (Object child: player.getChildren()) {
+				for (Object &child: player.getChildren()) {
 					renderer.texture("Image", child.texture);
-					if (child.mesh.hasUV()) { 
-						std::cout << "hasUV" << std::endl;
-					}
 					renderer.push();
 						renderer.push();
 							renderer.translate(vec3(0, 2, 0));

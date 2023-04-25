@@ -73,7 +73,7 @@ namespace assets {
       void setCameraZAxis(vec3 zAxis) { this->camera.zAxis= zAxis; };
 
 			void appendChild(Object obj) { children.push_back(obj); }
-			std::vector<Object> getChildren() { return this->children; };
+			std::vector<Object>& getChildren() { return this->children; };
 
     private:
       int health= 100; // player should always start with 100 health
