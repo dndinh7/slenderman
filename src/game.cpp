@@ -10,7 +10,6 @@
 #include "plymesh.h"
 #include "osutils.h"
 #include "entities/player.h"
-#include "entities/enemy.h"
 #include "objects/object.h"
 
 using namespace std;
@@ -50,15 +49,15 @@ class Viewer : public Window {
   	}
 
 		void initPlayerFlashlight() {
-			Object flashlight= Object();
-			flashlight.mesh= models["flashlight-uv"];
 			Image img;
-			img.load("../textures/flashlight.jpg", true);
+			img.load("../textures/flashlight/flashlight.jpg", true);
 			renderer.loadTexture("flashlightTex", img, 0);
-			flashlight.texture= "flashlightTex";
 
-			flashlight.scale= vec3(0.15);
-			flashlight.pos= vec3(-0.1, -0.1, 0.15);
+			vec3 pos= vec3(-0.1, -0.1, 0.15);
+			vec3 scale= vec3(0.15);
+
+			Object flashlight= Object(models["flashlight-uv"], "flashlightTex", pos, scale);
+
 			player.appendChild(flashlight);
 		}
 
@@ -68,6 +67,7 @@ class Viewer : public Window {
 				string s= modelStrings[i];
 				// does not get the extension for the key value
 				models[s.substr(0, s.size()-4)]= PLYMesh("../models/" + s);
+				cout << s << endl;
 			}
 		}
 		
@@ -235,8 +235,10 @@ class Viewer : public Window {
       // init player and slenderman
       player= Player(vec3(0), vec3(0,0,1), camera);
 
-      //PLYMesh enemyMesh= PLYMesh();
-      //slenderman= Enemy(vec3(1), vec3(0), enemyMesh, "placeholder"); 
+			Image img;
+			img.load("../textures/slenderman/slender_clothing_base_color.jpg", true);
+			renderer.loadTexture("slenderman_base", img, 0);
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(1), vec3(1)); 
 
 			initModels();
 			initPlayerFlashlight();
@@ -395,6 +397,20 @@ class Viewer : public Window {
     }
 
     void draw() {
+			// update player position
+			updateLookPos();
+
+      mat4 VM= renderer.viewMatrix();
+      vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
+      vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
+      vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
+
+      player.setCameraXAxis(xAxis);
+      player.setCameraYAxis(yAxis);
+      player.setCameraZAxis(zAxis);
+
+      updatePlayerPosition();
+
       player.setCameraAspect(((float) width()) / height());
       renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
         player.getCameraNear(), player.getCameraFar());
@@ -418,39 +434,35 @@ class Viewer : public Window {
 
 			renderer.beginShader("simple-texture");
 				for (Object &child: player.getChildren()) {
-					renderer.texture("Image", child.texture);
+					renderer.texture("Image", child.getTexture());
 					renderer.push();
 						renderer.translate(player.getPos());
 						renderer.push();
 							renderer.translate(child.pos);
 							renderer.scale(child.scale);
 							renderer.translate((-child.getMidPoint()));
-							renderer.mesh(child.mesh);
-
+							renderer.mesh(child.getMesh());
 						renderer.pop();
-
 					renderer.pop();
 				}
 			renderer.endShader();
 		
-			// update stuff
-      updateLookPos();
 
-      mat4 VM= renderer.viewMatrix();
-      vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
-      vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
-      vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
+			renderer.beginShader("spotlight");
+				initSpotlightShader(slenderman.getTexture(), vec2(1));
+				renderer.push();
+					renderer.translate(slenderman.pos);
 
-      player.setCameraXAxis(xAxis);
-      player.setCameraYAxis(yAxis);
-      player.setCameraZAxis(zAxis);
+					renderer.mesh(slenderman.getMesh());
+				renderer.pop();
 
-      updatePlayerPosition();
+			renderer.endShader();
+
     }
 
   protected:
     Player player;
-    Enemy slenderman;
+    Object slenderman;
 
     vec4 lightPosition;
     vec3 lightIntensityAmbient;
