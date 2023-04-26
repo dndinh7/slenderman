@@ -26,7 +26,7 @@ struct Object {
 		vec3 getMinBounds() { return mesh.minBounds(); };
 		vec3 getMaxBounds() { return mesh.maxBounds(); };
 
-		vec3 getMidPoint() { return (mesh.maxBounds() - mesh.minBounds()) * 0.5f; };
+		vec3 getMidPoint() { return (mesh.maxBounds() + mesh.minBounds()) * 0.5f; };
 
     vec3 pos= vec3(0, 0, 0);
     vec3 dir= vec3(0, 0, 1);

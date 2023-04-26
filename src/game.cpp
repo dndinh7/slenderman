@@ -52,10 +52,13 @@ class Viewer : public Window {
 		void initPlayerFlashlight() {
 			Object flashlight= Object();
 			flashlight.mesh= models["flashlight-uv"];
-			renderer.loadTexture("flashlightTex", "../textures/flashlight.jpg", 0);
+			Image img;
+			img.load("../textures/flashlight.jpg", true);
+			renderer.loadTexture("flashlightTex", img, 0);
 			flashlight.texture= "flashlightTex";
 
-			flashlight.scale= vec3(1);
+			flashlight.scale= vec3(0.15);
+			flashlight.pos= vec3(-0.1, -0.1, 0.15);
 			player.appendChild(flashlight);
 		}
 
@@ -398,19 +401,6 @@ class Viewer : public Window {
       
       renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
 
-      updateLookPos();
-
-      mat4 VM= renderer.viewMatrix();
-      vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
-      vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
-      vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
-
-      player.setCameraXAxis(xAxis);
-      player.setCameraYAxis(yAxis);
-      player.setCameraZAxis(zAxis);
-
-      updatePlayerPosition();
-
 
 
       // draw plane
@@ -430,11 +420,11 @@ class Viewer : public Window {
 				for (Object &child: player.getChildren()) {
 					renderer.texture("Image", child.texture);
 					renderer.push();
+						renderer.translate(player.getPos());
 						renderer.push();
-							renderer.translate(vec3(0, 2, 0));
-							//renderer.rotate(child.rot);
+							renderer.translate(child.pos);
 							renderer.scale(child.scale);
-							renderer.translate(-child.getMidPoint());
+							renderer.translate((-child.getMidPoint()));
 							renderer.mesh(child.mesh);
 
 						renderer.pop();
@@ -443,6 +433,19 @@ class Viewer : public Window {
 				}
 			renderer.endShader();
 		
+			// update stuff
+      updateLookPos();
+
+      mat4 VM= renderer.viewMatrix();
+      vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
+      vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
+      vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
+
+      player.setCameraXAxis(xAxis);
+      player.setCameraYAxis(yAxis);
+      player.setCameraZAxis(zAxis);
+
+      updatePlayerPosition();
     }
 
   protected:
