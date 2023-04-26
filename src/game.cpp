@@ -31,13 +31,15 @@ struct Billboard {
 	float widthRatio;
 };
 
-struct Grass: public Billboard {
+struct Grass: public Billboard {};
+
+struct Tree: public Billboard {};
+
+struct TextureFlags {
+	bool bump;
+	bool metallic;
+	bool roughness;
 };
-
-struct Tree: public Billboard {
-
-};
-
 
 class Viewer : public Window {
   public:
@@ -235,14 +237,14 @@ class Viewer : public Window {
       // init player and slenderman
       player= Player(vec3(0), vec3(0,0,1), camera);
 
-			Image img;
-			img.load("../textures/slenderman/slender_clothing_base_color.jpg", true);
-			renderer.loadTexture("slenderman_base", img, 0);
-      slenderman= Object(models["slenderman"], "slenderman_base", vec3(1), vec3(1)); 
 
 			initModels();
 			initPlayerFlashlight();
 
+			Image img;
+			img.load("../textures/slenderman/slender_clothing_basecolor.jpg", true);
+			renderer.loadTexture("slenderman_base", img, 0);
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), vec3(1)); 
 
     }
 
@@ -451,8 +453,8 @@ class Viewer : public Window {
 			renderer.beginShader("spotlight");
 				initSpotlightShader(slenderman.getTexture(), vec2(1));
 				renderer.push();
-					renderer.translate(slenderman.pos);
-
+					//renderer.translate(slenderman.pos);
+					renderer.translate(-slenderman.getMidPoint() - vec3(0, 0.30, 0));
 					renderer.mesh(slenderman.getMesh());
 				renderer.pop();
 
