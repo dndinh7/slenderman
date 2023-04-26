@@ -29,7 +29,6 @@ enum KEY {
 };
 
 struct Billboard : public RenderingItem {
-	vec3 pos;
 	float yScale;
 	float yTranslate;
 	float widthRatio;
@@ -172,7 +171,7 @@ class Viewer : public Window {
 
 			renderer.beginShader("spotlight");
 				for (auto* item : renderingItems) {
-					initSpotlightShader(item->texture, vec2(1));
+					initSpotlightShader(item->texture, vec2(1), item->useAlpha);
 					renderer.push();
 						renderer.translate(item->pos);
 						renderer.rotate(item->calculateHeading(player.getPos()), item->headingAxis);
@@ -238,7 +237,7 @@ class Viewer : public Window {
 			Image img;
 			img.load("../textures/slenderman.PNG", true);
 			renderer.loadTexture("slenderman_base", img, 0);
-      slenderman= Object(models["slenderman"], "slenderman_base", vec3(1,0,1), 
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0, 0, 0), 
 				vec3(0.283), quat(vec3(0, 0, 0)));
 
 			for (int i= 0; i < billboards.size(); i++) {
@@ -386,7 +385,7 @@ class Viewer : public Window {
       player.setZAxis(vec3(sin(azimuth), 0, cos(azimuth)));
     }
 
-    void initSpotlightShader(const std::string& texture, vec2 uvScale) {
+    void initSpotlightShader(const std::string& texture, vec2 uvScale, bool useAlpha) {
       vec3 Ka= vec3(0.1f);
       vec3 Kd= vec3(0.775f, 0.0f, 0.0f);
       vec3 Ks= vec3(0.1f, 0.1f, 0.1f);
@@ -416,6 +415,7 @@ class Viewer : public Window {
       renderer.setUniform("Material.Ks", Ks);
       renderer.setUniform("Material.alpha", shininess);
       renderer.setUniform("uvScale", uvScale);
+			renderer.setUniform("useAlpha", useAlpha);
 			
 			renderer.texture("diffuseTexture", texture);
     }
@@ -450,8 +450,9 @@ class Viewer : public Window {
 
 
       // draw plane
+			
 			renderer.beginShader("spotlight");
-				initSpotlightShader("dead_grass", vec2(10.0));
+				initSpotlightShader("dead_grass", vec2(10.0), false);
 				renderer.push();
 					renderer.translate(planeLocation);
 					renderer.scale(planeScale);
@@ -467,7 +468,7 @@ class Viewer : public Window {
 				renderer.translate(player.getPos());
 				renderer.rotate(orientation);
 				for (Object &child: player.getChildren()) {
-					initSpotlightShader(child.getTexture(), vec2(1));
+					initSpotlightShader(child.getTexture(), vec2(1), false);
 					//renderer.texture("diffuseTexture", child.getTexture());
 						renderer.push();
 							renderer.translate(child.pos);
@@ -525,11 +526,11 @@ class Viewer : public Window {
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 		
 		// grass information
-		float numGrass= 100;
+		const int numGrass= 100;
 		Grass grassParticles[100];
 
 		// tree information
-		float numTrees= 100;
+		const int numTrees= 100;
 		Tree treeParticles[100];
 
 		// billboard information

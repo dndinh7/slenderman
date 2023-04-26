@@ -28,6 +28,7 @@ uniform MaterialInfo Material;
 // texture information
 uniform sampler2D diffuseTexture;
 uniform bool HasUV;
+uniform bool useAlpha;
 in vec2 uv;
 
 uniform vec2 uvScale;
@@ -74,7 +75,9 @@ vec4 phongSpot() {
     diffuse= spotFactor * Spot.intensityDiffuse * intensity * texColor.xyz 
       * max(dot(s, n), 0.0f);
 
-		alpha= texColor.w;
+		if (useAlpha) {
+			alpha= texColor.w;
+		}
   }
 
   vec3 color;

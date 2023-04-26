@@ -44,6 +44,7 @@ struct RenderingItem {
 	vec3 scale= vec3(1);
 	vec3 headingAxis= vec3(0, 1, 0);
 	std::string texture;
+	bool useAlpha= true;
 
 };
 
@@ -59,6 +60,7 @@ struct Object : public RenderingItem{
 				this->minBounds= mesh.minBounds() * scale;
 				this->maxBounds= mesh.maxBounds() * scale;
 				this->texture= texture;
+				this->useAlpha= false;
 
 				this->dimensions= this->maxBounds - this->minBounds;
 				finalRot= rot;
