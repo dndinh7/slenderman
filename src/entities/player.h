@@ -15,6 +15,10 @@ struct CameraInfo {
 
   float azimuth;
   float elevation;
+
+	float targetAzimuth;
+	float targetElevation;
+
   float radius;
 
   vec3 xAxis;
@@ -31,10 +35,13 @@ namespace assets {
       Player(): Entity(vec3(0), vec3(0,0,1)) {};
 
       Player(vec3 pos, vec3 dir) :
-        Entity(pos, dir) {};
+        Entity(pos, dir), targetPosition(pos) {};
 
       Player(vec3 pos, vec3 dir, CameraInfo camera) : 
-        Entity(pos, dir), camera(camera) {};
+        Entity(pos, dir), camera(camera), targetPosition(pos) {};
+
+			vec3 getTargetPosition() { return this->targetPosition; };
+			void setTargetPosition(vec3 tp) { this->targetPosition= tp; };
       
       void moveLeft(float dt) { this->pos= this->pos + velocity * dt * xAxis; };
       void moveRight(float dt) { this->pos= this->pos - velocity * dt * xAxis; };
@@ -77,7 +84,15 @@ namespace assets {
 
 			Object& getFlashlight() { return this->children[0]; };
 
+			float getCameraTargetAzimuth() { return this->camera.targetAzimuth; };
+			void  setCameraTargetAzimuth(float azimuth) { this->camera.targetAzimuth= azimuth; };
+
+			float getCameraTargetElevation() { return this->camera.targetElevation; };
+			void  setCameraTargetElevation(float elevation) { this->camera.targetElevation= elevation; };
     private:
+			vec3 targetPosition= vec3(0);
+			
+
       int health= 100; // player should always start with 100 health
       float velocity= 1.0f;
       

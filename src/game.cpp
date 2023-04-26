@@ -1,5 +1,10 @@
 // Bryn Mawr College, alinen, 2020
 //
+/**
+ * Lerping Cameras: 
+ * https://superhedral.com/2021/10/30/lerping-cameras-in-unity/
+*/
+
 
 #include <cmath>
 #include <string>
@@ -208,13 +213,13 @@ class Viewer : public Window {
 
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
-			//initGrass();
-			//initTrees();
+			initGrass();
+			initTrees();
 
-			//billboards.reserve(numTrees + numGrass);
-			//billboards.reserve(numGrass);
-			//billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
-			//billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
+			billboards.reserve(numTrees + numGrass);
+			billboards.reserve(numGrass);
+			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
+			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
 
       // init camera
       CameraInfo camera;
@@ -239,15 +244,16 @@ class Viewer : public Window {
 			Image img;
 			img.load("../textures/slenderman.PNG", true);
 			renderer.loadTexture("slenderman_base", img, 0);
-      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), vec3(0.283));
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), 
+				vec3(0.283), quat(vec3(0, 0, 0)));
 
     }
 
     void mouseMotion(int x, int y, int dx, int dy) {
       // we're subtracting because it's opposite to the eyePos
       if (mouseIsDown(GLFW_MOUSE_BUTTON_RIGHT)) {
-        player.setCameraAzimuth(player.getCameraAzimuth() - ((float)dx) * 2.0f * dt());
-        float elevation= player.getCameraElevation() - ((float)dy) * 2.0f * dt();
+        player.setCameraAzimuth(player.getCameraAzimuth() - dx * 0.01f);
+        float elevation= player.getCameraElevation() - dy * 0.01f;
 
         // clamp between (-pi/2, pi/2), don't want the bounds since it might lead to weird rotation
         elevation= std::max(elevation, (float) (-M_PI/2) + 0.00001f);
@@ -324,21 +330,44 @@ class Viewer : public Window {
 
     // updates the eyePos when the user presses WASD
     void updatePlayerPosition() {
+			vec3 targetPos= player.getPos();
+
+
       if (WASD_KEY_HELD[W_KEY]) {
-        player.moveForward(dt());
+        //player.moveForward(dt());
+				float velocity= player.getVelocity();
+				vec3 zAxis= player.getZAxis();
+
+				targetPos+= velocity * zAxis;
       }
 
       if (WASD_KEY_HELD[A_KEY]) {
-        player.moveLeft(dt());
+        //player.moveLeft(dt());
+
+				float velocity= player.getVelocity();
+				vec3 xAxis= player.getXAxis();
+
+				targetPos+= velocity * xAxis;
       }
 
       if (WASD_KEY_HELD[S_KEY]) {
-        player.moveBackward(dt());
+        //player.moveBackward(dt());
+				
+				float velocity= player.getVelocity();
+				vec3 zAxis= player.getZAxis();
+
+				targetPos-= velocity * zAxis;
       }
 
       if (WASD_KEY_HELD[D_KEY]) {
-        player.moveRight(dt());
+        //player.moveRight(dt());
+				float velocity= player.getVelocity();
+				vec3 xAxis= player.getXAxis();
+
+				targetPos-= velocity * xAxis;
       }
+
+			player.setTargetPosition(targetPos);
     }
 
     void updateLookPos() {
@@ -405,10 +434,15 @@ class Viewer : public Window {
       player.setCameraXAxis(xAxis);
       player.setCameraYAxis(yAxis);
       player.setCameraZAxis(zAxis);
+
 	
+			quat orientation= quat(vec3(-player.getCameraElevation(), player.getCameraAzimuth(), 0));
+			orientation= normalize(orientation);
 
 
       updatePlayerPosition();
+
+			lateUpdate();
 
       player.setCameraAspect(((float) width()) / height());
       renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
@@ -418,23 +452,25 @@ class Viewer : public Window {
 
 
       // draw plane
-      renderer.beginShader("spotlight");
-        initSpotlightShader("dead_grass", vec2(10.0));
-        renderer.push();
-          renderer.translate(planeLocation);
-          renderer.scale(planeScale);
-          renderer.cube();
-        renderer.pop();
-      renderer.endShader();
+			renderer.beginShader("spotlight");
+				initSpotlightShader("dead_grass", vec2(10.0));
+				renderer.push();
+					renderer.translate(planeLocation);
+					renderer.scale(planeScale);
+					renderer.cube();
+				renderer.pop();
+			renderer.endShader();
+
 
 			//drawBillboards();
 
 			renderer.beginShader("spotlight");
+				renderer.push();
+				renderer.translate(player.getPos());
+				renderer.rotate(orientation);
 				for (Object &child: player.getChildren()) {
 					initSpotlightShader(child.getTexture(), vec2(1));
 					//renderer.texture("diffuseTexture", child.getTexture());
-					renderer.push();
-						renderer.translate(player.getPos());
 						renderer.push();
 							renderer.translate(child.pos);
 							renderer.scale(child.scale);
@@ -446,19 +482,32 @@ class Viewer : public Window {
 			renderer.endShader();
 		
 
-			renderer.beginShader("simple-texture");
-				renderer.texture("Image", slenderman.getTexture());
-				//initSpotlightShader(slenderman.getTexture(), vec2(1));
+			
+			renderer.beginShader("spotlight");
+				initSpotlightShader(slenderman.getTexture(), vec2(1));
 				renderer.push();
-					renderer.rotate(glm::radians(-90.0f), vec3(1, 0, 0));
+					//renderer.translate(vec3(0, 0, 1));
+					renderer.translate(vec3(0, -(planeLocation.y + slenderman.getDimensions().y * 0.5f), 0));
 					renderer.scale(slenderman.scale);
-					renderer.translate(-slenderman.getMidPoint() - vec3(0, 0.30, 0));
+					renderer.rotate(slenderman.getRot());
+					renderer.translate(-slenderman.getMidPoint());
 					renderer.mesh(slenderman.getMesh());
 				renderer.pop();
-
 			renderer.endShader();
 
+
     }
+
+		void lateUpdate() {
+			vec3 curPlayerPos= LERP(player.getPos(), player.getTargetPosition(), dt());
+			player.setPos(curPlayerPos);
+			player.setTargetPosition(curPlayerPos);
+
+		}
+
+		vec3 LERP(const vec3& a, const vec3& b, float t) {
+			return a * (1 - t) + b * t;
+		}
 
   protected:
     Player player;
@@ -496,6 +545,8 @@ class Viewer : public Window {
 
 		enum GameStatus {WIN, LOSE, ONGOING};
 		GameStatus gameStatus= ONGOING;
+
+
 };
 
 int main(int argc, char** argv)
