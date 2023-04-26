@@ -405,8 +405,7 @@ class Viewer : public Window {
       player.setCameraXAxis(xAxis);
       player.setCameraYAxis(yAxis);
       player.setCameraZAxis(zAxis);
-
-			player.getFlashlight().setXYZAxes(xAxis, yAxis, zAxis);
+	
 
 
       updatePlayerPosition();
