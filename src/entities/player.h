@@ -75,14 +75,18 @@ namespace assets {
 			void appendChild(Object obj) { children.push_back(obj); }
 			std::vector<Object>& getChildren() { return this->children; };
 
+			Object& getFlashlight() { return this->children[0]; };
+
     private:
       int health= 100; // player should always start with 100 health
       float velocity= 1.0f;
       
       CameraInfo camera;
 
-      //Object hand;
+      // flashlight should be the first element
       std::vector<Object> children;
+
+
   };
 }
 

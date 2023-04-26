@@ -35,11 +35,6 @@ struct Grass: public Billboard {};
 
 struct Tree: public Billboard {};
 
-struct TextureFlags {
-	bool bump;
-	bool metallic;
-	bool roughness;
-};
 
 class Viewer : public Window {
   public:
@@ -213,12 +208,12 @@ class Viewer : public Window {
 
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
-			initGrass();
+			//initGrass();
 			//initTrees();
 
 			//billboards.reserve(numTrees + numGrass);
-			billboards.reserve(numGrass);
-			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
+			//billboards.reserve(numGrass);
+			//billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
 			//billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
 
       // init camera
@@ -242,9 +237,9 @@ class Viewer : public Window {
 			initPlayerFlashlight();
 
 			Image img;
-			img.load("../textures/slenderman/slender_clothing_basecolor.jpg", true);
+			img.load("../textures/slenderman.PNG", true);
 			renderer.loadTexture("slenderman_base", img, 0);
-      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), vec3(1)); 
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), vec3(0.283));
 
     }
 
@@ -411,6 +406,9 @@ class Viewer : public Window {
       player.setCameraYAxis(yAxis);
       player.setCameraZAxis(zAxis);
 
+			player.getFlashlight().setXYZAxes(xAxis, yAxis, zAxis);
+
+
       updatePlayerPosition();
 
       player.setCameraAspect(((float) width()) / height());
@@ -418,7 +416,6 @@ class Viewer : public Window {
         player.getCameraNear(), player.getCameraFar());
       
       renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
-
 
 
       // draw plane
@@ -431,12 +428,12 @@ class Viewer : public Window {
         renderer.pop();
       renderer.endShader();
 
-			drawBillboards();
+			//drawBillboards();
 
-
-			renderer.beginShader("simple-texture");
+			renderer.beginShader("spotlight");
 				for (Object &child: player.getChildren()) {
-					renderer.texture("Image", child.getTexture());
+					initSpotlightShader(child.getTexture(), vec2(1));
+					//renderer.texture("diffuseTexture", child.getTexture());
 					renderer.push();
 						renderer.translate(player.getPos());
 						renderer.push();
@@ -450,10 +447,12 @@ class Viewer : public Window {
 			renderer.endShader();
 		
 
-			renderer.beginShader("spotlight");
-				initSpotlightShader(slenderman.getTexture(), vec2(1));
+			renderer.beginShader("simple-texture");
+				renderer.texture("Image", slenderman.getTexture());
+				//initSpotlightShader(slenderman.getTexture(), vec2(1));
 				renderer.push();
-					//renderer.translate(slenderman.pos);
+					renderer.rotate(glm::radians(-90.0f), vec3(1, 0, 0));
+					renderer.scale(slenderman.scale);
 					renderer.translate(-slenderman.getMidPoint() - vec3(0, 0.30, 0));
 					renderer.mesh(slenderman.getMesh());
 				renderer.pop();
