@@ -15,16 +15,50 @@ using namespace agl;
 using namespace glm;
 using namespace std;
 
-struct Object {
+struct RenderingItem {
+	RenderingItem() {};
+
+	RenderingItem(vec3 pos, quat rot, vec3 scale) :
+		pos(pos), rot(rot), scale(scale), texture("") {};
+
+	virtual quat getHeadingRotToPlayer(vec3 playerPos) {
+		vec3 n= normalize(playerPos - this->pos);
+		float thetaY= atan2(n.x, n.z);
+		return quat(angleAxis(thetaY, headingAxis));
+	}
+
+	virtual float calculateHeading(vec3 playerPos) {
+		vec3 n= normalize(playerPos - this->pos);
+		float thetaY= atan2(n.x, n.z);
+		return thetaY;
+	}
+
+	// must implement render
+	virtual void render(Renderer& renderer, float planeLocationY) {
+		// should not get here
+		return;
+	};
+
+	vec3 pos= vec3(0);
+	quat rot= quat(vec3(0, 0, 0));
+	vec3 scale= vec3(1);
+	vec3 headingAxis= vec3(0, 1, 0);
+	std::string texture;
+
+};
+
+struct Object : public RenderingItem{
   public:
-		Object() : pos(vec3(0)), texture(""), scale(vec3(1)) {};
+		Object() : RenderingItem(vec3(0), quat(vec3(0)), vec3(1)), pos(vec3(0)), scale(vec3(1)) {};
 
     Object(PLYMesh mesh, std::string texture, vec3 pos= vec3(0, 0, 0), 
 			vec3 scale= vec3(1), quat rot= quat(vec3(0, 0, 0))) : 
-      pos(pos), rot(rot), scale(scale), mesh(mesh), texture(texture) 
+			RenderingItem(pos, rot, scale), pos(pos), rot(rot), 
+			scale(scale), mesh(mesh)  
 			{
 				this->minBounds= mesh.minBounds() * scale;
 				this->maxBounds= mesh.maxBounds() * scale;
+				this->texture= texture;
 
 				this->dimensions= this->maxBounds - this->minBounds;
 				finalRot= rot;
@@ -63,11 +97,27 @@ struct Object {
 			finalRot= rot * quat(vec3(0, heading, 0));
 		}
 
+		float calculateHeading(vec3 playerPos) {
+			vec3 n= normalize(playerPos - this->pos);
+			float thetaY= atan2(n.x, n.z);
+			return thetaY;
+		}
+
+
+		void render(Renderer& renderer, float planeLocationY) {
+			renderer.translate(vec3(0, -(planeLocationY + this->dimensions.y * 0.5f), 0));
+			renderer.scale(this->scale);
+			renderer.rotate(this->getRot());
+			renderer.translate(-this->getMidPoint());
+			renderer.mesh(this->getMesh());
+		}
+
 		// easy access and change
     vec3 pos= vec3(0, 0, 0);
 		vec3 scale= vec3(1);
 		float heading= 0.0f;
 
+		
 		bool visible= false;
 
 
@@ -75,7 +125,6 @@ struct Object {
 		vec3 minBounds;
 		vec3 maxBounds;
 		PLYMesh mesh;
-		std::string texture;
 		vec3 dimensions= vec3(0);
 		// initial rot to get mesh upright
 		quat rot= quat(vec3(0, 0, 0));

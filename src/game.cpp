@@ -28,12 +28,25 @@ enum KEY {
   W_KEY, A_KEY, S_KEY, D_KEY
 };
 
-struct Billboard {
+struct Billboard : public RenderingItem {
 	vec3 pos;
-	std::string texture;
 	float yScale;
 	float yTranslate;
 	float widthRatio;
+
+	vec3 headingAxis= vec3(0, 1, 0);
+
+	float calculateHeading(vec3 playerPos) {
+		vec3 n= normalize(playerPos - this->pos);
+		float thetaY= atan2(n.x, n.z);
+		return thetaY;
+	}
+
+	void render(Renderer& renderer, float planeLocationY) {
+		renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
+		renderer.translate(vec3(-0.5, -0.5, 0));
+		renderer.quad();
+	}
 };
 
 struct Grass: public Billboard {};
@@ -69,41 +82,11 @@ class Viewer : public Window {
 				string s= modelStrings[i];
 				// does not get the extension for the key value
 				models[s.substr(0, s.size()-4)]= PLYMesh("../models/" + s);
-				cout << s << endl;
 			}
 		}
 		
-		void initTrees() {
-			Image img;
-			float treeRatios[2];
-			img.load("../textures/tree_billboards/fir.png", true);
-			renderer.loadTexture("fir", img, 0);
-			treeRatios[0]= float(img.width()) / img.height();
 
-			img.load("../textures/tree_billboards/pine.png", true);
-			renderer.loadTexture("pine", img, 0);
-			treeRatios[1]= float(img.width()) / img.height();
-
-			std::string treeTextures[2];
-			treeTextures[0]= "fir";
-			treeTextures[1]= "pine";
-
-			for (int i= 0; i < numTrees; i++) {
-				Tree tree= treeParticles[i];
-				tree.yScale= randBound(0.8, 1.20);
-				tree.yTranslate= -0.5 + 0.5 * tree.yScale;
-				tree.pos= vec3(randBound(-planeScale.x * 0.40, planeScale.x * 0.40),
-					tree.yTranslate, randBound(-planeScale.z * 0.40, planeScale.z * 0.40));
-
-				int texIndex= rand() % 2;
-				tree.texture= treeTextures[texIndex];
-				tree.widthRatio= treeRatios[texIndex];
-
-				treeParticles[i]= tree;
-			}
-		}
-
-		void initGrass() {
+		void initBillboards() {
 			Image img;
 			float grassRatios[4];
 			img.load("../textures/grass_billboards/n_grass_diff_0_18.png", true);
@@ -136,51 +119,64 @@ class Viewer : public Window {
 				grass.yTranslate= -0.5 + 0.5 * grass.yScale;
 				grass.pos= vec3(randBound(-planeScale.x * 0.40, planeScale.x * 0.40),
 					grass.yTranslate, randBound(-planeScale.z * 0.40, planeScale.z * 0.40));
-
 				int texIndex= rand() % 4;
 				grass.texture= grassTextures[texIndex];
 				grass.widthRatio= grassRatios[texIndex];
 
 				grassParticles[i]= grass;
 			}
+
+
+			float treeRatios[2];
+			img.load("../textures/tree_billboards/fir.png", true);
+			renderer.loadTexture("fir", img, 0);
+			treeRatios[0]= float(img.width()) / img.height();
+
+			img.load("../textures/tree_billboards/pine.png", true);
+			renderer.loadTexture("pine", img, 0);
+			treeRatios[1]= float(img.width()) / img.height();
+
+			std::string treeTextures[2];
+			treeTextures[0]= "fir";
+			treeTextures[1]= "pine";
+
+			for (int i= 0; i < numTrees; i++) {
+				Tree tree= treeParticles[i];
+				tree.yScale= randBound(1.5, 2);
+				tree.yTranslate= -0.5 + 0.5 * tree.yScale;
+				tree.pos= vec3(randBound(-planeScale.x * 0.40, planeScale.x * 0.40),
+					tree.yTranslate, randBound(-planeScale.z * 0.40, planeScale.z * 0.40));
+
+				int texIndex= rand() % 2;
+				tree.texture= treeTextures[texIndex];
+				tree.widthRatio= treeRatios[texIndex];
+
+				treeParticles[i]= tree;
+			}
 		}
 
-		// used as comparator for sorting billboards
-		bool comparePosition(Billboard b1, Billboard b2) {
-			vec3 cameraPos= renderer.cameraPosition();
-			
-			float dSqr1 = length2(b1.pos - cameraPos);
-			float dSqr2 = length2(b2.pos - cameraPos);
-			
-			return (dSqr1 < dSqr2);
-		}
 
-		void drawBillboards()
+		void drawRenderingItems()
 		{
 			vec3 cameraPos = renderer.cameraPosition();
 
 			// we sort by descending order, so we render farther ones first
-			std::sort(billboards.begin(), billboards.end(), [&](Billboard b1, Billboard b2) 
+			std::sort(renderingItems.begin(), renderingItems.end(), [&](RenderingItem* b1, RenderingItem* b2) 
 			{
-				float dSqr1 = length2(b1.pos - cameraPos);
-				float dSqr2 = length2(b2.pos - cameraPos);
+				float dSqr1 = length2(b1->pos - cameraPos);
+				float dSqr2 = length2(b2->pos - cameraPos);
 				
 				return (dSqr1 > dSqr2);
 			});
 
 
 			renderer.beginShader("spotlight");
-				for (int i= 0; i < billboards.size(); i++) {
-					Billboard billboard= billboards[i];
-					initSpotlightShader(billboard.texture, vec2(1));
+				for (auto* item : renderingItems) {
+					initSpotlightShader(item->texture, vec2(1));
 					renderer.push();
-						vec3 n= normalize(player.getPos() - billboard.pos);
-						float thetaY= atan2(n.x, n.z);
-						renderer.translate(billboard.pos);
-						renderer.rotate(thetaY, vec3(0, 1, 0));
-						renderer.scale(vec3(billboard.widthRatio * billboard.yScale, billboard.yScale, 1));
-						renderer.translate(vec3(-0.5, -0.5, 0));
-						renderer.quad();
+						renderer.translate(item->pos);
+						renderer.rotate(item->calculateHeading(player.getPos()), item->headingAxis);
+						item->render(renderer, planeLocation.y);
 					renderer.pop();
 				}
       renderer.endShader();
@@ -213,11 +209,9 @@ class Viewer : public Window {
 
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
-			initGrass();
-			initTrees();
-
+			initBillboards();
 			billboards.reserve(numTrees + numGrass);
-			billboards.reserve(numGrass);
+
 			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
 			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
 
@@ -244,9 +238,13 @@ class Viewer : public Window {
 			Image img;
 			img.load("../textures/slenderman.PNG", true);
 			renderer.loadTexture("slenderman_base", img, 0);
-      slenderman= Object(models["slenderman"], "slenderman_base", vec3(0), 
+      slenderman= Object(models["slenderman"], "slenderman_base", vec3(1,0,1), 
 				vec3(0.283), quat(vec3(0, 0, 0)));
 
+			for (int i= 0; i < billboards.size(); i++) {
+				renderingItems.push_back(&billboards[i]);
+			}
+			renderingItems.push_back(&slenderman);
     }
 
     void mouseMotion(int x, int y, int dx, int dy) {
@@ -462,7 +460,7 @@ class Viewer : public Window {
 			renderer.endShader();
 
 
-			//drawBillboards();
+			drawRenderingItems();
 
 			renderer.beginShader("spotlight");
 				renderer.push();
@@ -482,19 +480,16 @@ class Viewer : public Window {
 			renderer.endShader();
 		
 
-			
+			/*	
 			renderer.beginShader("spotlight");
 				initSpotlightShader(slenderman.getTexture(), vec2(1));
 				renderer.push();
-					//renderer.translate(vec3(0, 0, 1));
-					renderer.translate(vec3(0, -(planeLocation.y + slenderman.getDimensions().y * 0.5f), 0));
-					renderer.scale(slenderman.scale);
-					renderer.rotate(slenderman.getRot());
-					renderer.translate(-slenderman.getMidPoint());
-					renderer.mesh(slenderman.getMesh());
+					renderer.translate(slenderman.pos);
+					renderer.rotate(slenderman.calculateHeading(player.getPos()), slenderman.headingAxis);
+					slenderman.render(renderer, planeLocation.y);
 				renderer.pop();
 			renderer.endShader();
-
+			*/
 
     }
 
@@ -539,6 +534,8 @@ class Viewer : public Window {
 
 		// billboard information
 		vector<Billboard> billboards;
+
+		vector<RenderingItem*> renderingItems;
 
 		// model information
 		std::map<string, PLYMesh> models;
