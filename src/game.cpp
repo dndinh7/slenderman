@@ -45,6 +45,8 @@ struct Billboard : public RenderingItem {
 	}
 
 	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
+		renderer.translate(this->pos);
+		renderer.rotate(this->calculateHeading(playerPos), headingAxis);
 		renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
 		renderer.translate(vec3(-0.5, -0.5, 0));
 		renderer.quad();
