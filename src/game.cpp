@@ -512,10 +512,22 @@ class Viewer : public Window {
 					timeSinceVisibility= 0.0f;
 				}
 
+
+				// make him disappear when the player is not looking at him
 				if (timeSinceVisibility >= slendermanVisibleTime && slenderman.isVisible) {
-					slenderman.isVisible= false;
-					slendermanVisibleTime= -1.0f;
-					timeSinceLastSpawn= 0.0f;
+					
+					vec3 toSlender= slenderman.pos - player.getPos();
+					// get rid of the y axis, since his midpoint is higher anyway
+					toSlender.y= 0;
+					vec3 playerForward= player.getZAxis();
+					float slenderDotPlayer= dot(toSlender, playerForward);
+					
+					if (slenderDotPlayer < 0) {	
+						
+						slenderman.isVisible= false;
+						slendermanVisibleTime= -1.0f;
+						timeSinceLastSpawn= 0.0f;
+					}
 				}
 
 				if (!slenderman.isVisible) {
@@ -776,7 +788,7 @@ class Viewer : public Window {
 				orientation= normalize(orientation);
 
 				checkPageProximity();
-				
+
 				checkPlayerLookingAtSlender();
 
 				isWin();
@@ -846,12 +858,26 @@ class Viewer : public Window {
 				float y = 500;
 				renderer.text(message, x, y);
 			} else {
-				renderer.fontColor(glm::vec4(0.95, 0.0, 0, 0.8));
-				renderer.fontSize(128);
-				std::string message = "YOU LOSE! :[";
-				float x = 500 - renderer.textWidth(message) * 0.5f;
-				float y = 500;
-				renderer.text(message, x, y);
+				player.setCameraAspect(((float) width()) / height());
+				renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
+					player.getCameraNear(), player.getCameraFar());
+
+				renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
+				slenderman.pos= player.getLookPos();
+
+				/*
+					renderer.fontColor(glm::vec4(0.95, 0.0, 0, 0.8));
+					renderer.fontSize(128);
+					std::string message = "YOU LOSE! :[";
+					float x = 500 - renderer.textWidth(message) * 0.5f;
+					float y = 500;
+					renderer.text(message, x, y);
+				*/
+				
+				renderer.beginShader("simple-texture");
+					renderer.texture("Image", slenderman.texture);
+					slenderman.render(renderer, planeLocation.y, player.getPos());
+				renderer.endShader();
 			}
 
     }
