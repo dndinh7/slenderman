@@ -981,14 +981,14 @@ class Viewer : public Window {
 
 
 		// plane information
-		vec3 planeScale= vec3(10.0f, 0.01f, 10.0f);
+		vec3 planeScale= vec3(45.0f, 0.01f, 45.0f);
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 		float xDim;
 		float zDim;
 		
 		// grass information
-		const int numGrass= 500;
-		Grass grassParticles[500];
+		const int numGrass= 1;
+		Grass grassParticles[1];
 
 		// tree information
 		vector<Tree> treeParticles;

@@ -107,7 +107,7 @@ vec4 phongSpot() {
   return vec4(color, alpha);
 }
 
-https://www.shadertoy.com/view/XtK3W3
+// https://www.shadertoy.com/view/XtK3W3
 vec3 mod289(vec3 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
