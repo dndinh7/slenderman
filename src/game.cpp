@@ -132,6 +132,11 @@ class Viewer : public Window {
 			ERRCHECK(result);
 		}
 
+		if (staticNoise != NULL) {
+			result = staticNoise->release();
+			ERRCHECK(result);
+		}
+
 		result = system->release();
 		ERRCHECK(result);
 	}
@@ -532,6 +537,11 @@ class Viewer : public Window {
 			FMOD_DEFAULT, 0, &glitching);
 		ERRCHECK(result);
 
+		result = system->createStream(
+			"../sounds/static.wav",
+			FMOD_DEFAULT, 0, &staticNoise);
+		ERRCHECK(result);
+
 
 	}
 
@@ -921,6 +931,15 @@ class Viewer : public Window {
 				randTimeLoseGlitch= -1.0f;
 				timeGlitching= 0.0f;
 				slenderman.useGlitch= true;
+
+				result = system->playSound(staticNoise, 0, true, &backgroundChannel);
+				ERRCHECK(result);
+
+				result = backgroundChannel->setVolume(0.15f);
+				ERRCHECK(result);
+
+				result = backgroundChannel->setPaused(false);
+				ERRCHECK(result);
 			}
 
 			if (slenderman.useGlitch) {
@@ -1025,7 +1044,7 @@ class Viewer : public Window {
 					player.getCameraNear(), player.getCameraFar());
 
 				renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
-				slenderman.pos= player.getLookPos();
+				slenderman.pos= player.getLookPos() + vec3(0, -0.3f, 0);
 
 				/*
 					renderer.fontColor(glm::vec4(0.95, 0.0, 0, 0.8));
@@ -1037,11 +1056,19 @@ class Viewer : public Window {
 				*/
 				
 				randomLosingGlitches();
+				slenderman.isVisible = true;
 				renderer.beginShader("spotlight");
-					this->lightIntensityDiffuse= vec3(0);
-					this->lightIntensitySpecular= vec3(0);
 					initSpotlightShader(slenderman.texture, vec2(1), false, false);
 					slenderman.render(renderer, planeLocation.y, player.getPos());
+					renderer.push();
+						renderer.texture("diffuseTexture", "dead_grass");
+						renderer.setUniform("uvScale", vec2(10));
+						renderer.translate(vec3(0, 0, 0.5));
+						renderer.translate(player.getLookPos());
+						renderer.scale(vec3(10, 10, 0.1f));
+						renderer.cube();
+					renderer.pop();
+
 				renderer.endShader();
 			}
 
@@ -1142,9 +1169,11 @@ class Viewer : public Window {
 		FMOD::Channel* backgroundChannel = NULL;
 		FMOD::Channel* glitchChannel = NULL;
 		FMOD::Channel* userChannel = NULL;
+		FMOD::Channel* staticChannel = NULL;
 		FMOD::Sound* flashlightButton;
 		FMOD::Sound* glitching;
 		FMOD::Sound* crickets;
+		FMOD::Sound* staticNoise;
 };
 
 int main(int argc, char** argv)
