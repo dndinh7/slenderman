@@ -31,6 +31,7 @@ enum KEY {
 };
 
 
+
 struct Billboard : public RenderingItem {
 	float yScale;
 	float yTranslate;
@@ -45,25 +46,6 @@ struct Billboard : public RenderingItem {
 	}
 
 	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
-		renderer.translate(this->pos);
-		renderer.rotate(this->calculateHeading(playerPos), headingAxis);
-		renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
-		renderer.translate(vec3(-0.5, -0.5, 0));
-		renderer.quad();
-	}
-};
-
-struct Grass: public Billboard {};
-
-struct Tree: public Billboard {};
-
-struct Page : public RenderingItem {
-	float yScale;
-	float yTranslate;
-	float widthRatio;
-
-	vec3 headingAxis= vec3(0, 1, 0);
-	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
 		renderer.push();
 			renderer.translate(this->pos);
 			renderer.rotate(this->calculateHeading(playerPos), headingAxis);
@@ -73,6 +55,34 @@ struct Page : public RenderingItem {
 		renderer.pop();
 	}
 };
+
+struct Grass: public Billboard {};
+
+struct Tree: public Billboard {};
+
+struct Page : public RenderingItem {
+	float yScale;
+	float widthRatio;
+
+	vec3 headingAxis= vec3(0, 1, 0);
+	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
+		renderer.push();
+			renderer.push();
+				renderer.translate(parent->pos);
+				renderer.rotate(parent->calculateHeading(playerPos), headingAxis);
+				renderer.translate(vec3(-0.5, -0.5, 0));
+			renderer.pop();
+			renderer.translate(this->pos);
+			renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
+			renderer.quad();
+		renderer.pop();
+	}
+
+	Tree* parent;
+};
+
+
+
 
 
 class Viewer : public Window {
@@ -96,8 +106,8 @@ class Viewer : public Window {
 
 				page.yScale= 0.5f;
 				page.widthRatio= ((float) img.width() / img.height());
-				page.yTranslate= -0.5 + 0.5 * page.yScale;
-				page.pos= vec3(randBound(-xDim / 2, xDim / 2), page.yTranslate, randBound(-zDim / 2, zDim / 2));
+
+				page.pos= vec3(0, 0, 0.05f); // local to tree, so we want it to be in front
 				page.texture= filename;
 				page.usesHeading= false;
 
@@ -331,9 +341,7 @@ class Viewer : public Window {
 				for (auto* item : renderingItems) {
 					if (item->isVisible) {
 						initSpotlightShader(item->texture, vec2(1), item->useAlpha);
-						renderer.push();
-							item->render(renderer, planeLocation.y, player.getPos());
-						renderer.pop();
+						item->render(renderer, planeLocation.y, player.getPos());
 					}	
 				}
       renderer.endShader();
@@ -371,10 +379,7 @@ class Viewer : public Window {
 
 			initBillboards();
 			initPages();
-			billboards.reserve(treeParticles.size() + numGrass);
-
-			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
-			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
+			
       // init camera
       CameraInfo camera;
 
@@ -403,11 +408,16 @@ class Viewer : public Window {
 			
 			slenderman.isVisible= false;
 
-			for (int i= 0; i < billboards.size(); i++) {
-				renderingItems.push_back(&billboards[i]);
+			for (int i= 0; i < treeParticles.size(); i++) {
+				renderingItems.push_back(&treeParticles[i]);
 			}
-			renderingItems.push_back(&slenderman);
 
+			for (int i= 0; i < numGrass; i++) {
+				renderingItems.push_back(&grassParticles[i]);
+			}
+
+			renderingItems.push_back(&slenderman);
+			
 			for (int i= 0; i < pages.size(); i++) {
 				renderingItems.push_back(&pages[i]);
 			}
