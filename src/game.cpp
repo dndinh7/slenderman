@@ -6,6 +6,8 @@
  * https://superhedral.com/2021/10/30/lerping-cameras-in-unity/
  * http://devmag.org.za/2009/05/03/poisson-disk-sampling/
  * https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+ * https://www.shadertoy.com/view/XtK3W3
+ * 
 */
 
 
@@ -789,10 +791,10 @@ class Viewer : public Window {
 				randTimeGlitching= randBound(0.1, 0.5);
 			}
 
-			cout << "randTime: " << randTimeLoseGlitch << endl;
-			cout << "randTimeSince: " << timeSinceLoseGlitch << endl;
-			cout << "timeGlitch: " << randTimeGlitching << endl;
-			cout << "timeGlitchDuring: " << timeGlitching << endl;
+			// cout << "randTime: " << randTimeLoseGlitch << endl;
+			// cout << "randTimeSince: " << timeSinceLoseGlitch << endl;
+			// cout << "timeGlitch: " << randTimeGlitching << endl;
+			// cout << "timeGlitchDuring: " << timeGlitching << endl;
 
 			if (timeGlitching >= randTimeGlitching && slenderman.useGlitch) {
 				randTimeGlitching= -1.0f;
