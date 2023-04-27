@@ -148,7 +148,10 @@ class Viewer : public Window {
 			vector<vec2> cellsAroundPoint= squareAroundPoint(grid, gridPointIdx, 4);
 
 			for (auto cell : cellsAroundPoint) {
-				if (cell != vec2(-1)) {
+
+				// only negative points are from initializiation
+				// so if they are positive, then it is in the neighborhood
+				if (cell.x >= 0.0f && cell.y >= 0.0f) {
 					if (dist(cell, point) < minDist) {
 						return true;
 					}
@@ -247,21 +250,21 @@ class Viewer : public Window {
 					}
 				}
 			}
-			
+			cout << samplePoints.size() << endl;
 			treeParticles.reserve(samplePoints.size());
 			for (int i= 0; i < samplePoints.size(); i++) {
 				vec2 point= samplePoints[i];
 				Tree tree;
 				tree.yScale= randBound(1.5, 2);
 				tree.yTranslate= -0.5 + 0.5 * tree.yScale;
-				tree.pos= vec3(point.x,
-					tree.yTranslate, point.y);
+				tree.pos= vec3(point.x - xDim * 0.5,
+					tree.yTranslate, point.y - zDim * 0.5);
 
 				int texIndex= rand() % 2;
 				tree.texture= treeTextures[texIndex];
 				tree.widthRatio= treeRatios[texIndex];
 
-				treeParticles[i]= tree;
+				treeParticles.push_back(tree);
 			}
 		}
 
@@ -639,7 +642,7 @@ class Viewer : public Window {
 
 
 		// plane information
-		vec3 planeScale= vec3(100.0f, 0.1f, 100.0f);
+		vec3 planeScale= vec3(10.0f, 0.1f, 10.0f);
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 		float xDim;
 		float zDim;
