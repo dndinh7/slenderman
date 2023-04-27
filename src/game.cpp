@@ -238,11 +238,11 @@ class Viewer : public Window {
 				treeCellProcessor.pop_front();
 
 				for (int i= 0; i < numPointsAround; i++) {
-					vec2 newPoint= generateRandomPointAround(p, treeCellSize+1);
+					float minDist= treeCellSize;
+					vec2 newPoint= generateRandomPointAround(p, minDist);
 
-					if (inRectangle(newPoint) && !inNeighborhood(gridTrees, newPoint, treeCellSize+1)) {
+					if (inRectangle(newPoint) && !inNeighborhood(gridTrees, newPoint, minDist)) {
 						treeCellProcessor.push_back(newPoint);
-						samplePoints.push_back(newPoint);
 
 						vec2 newPointIdx= pointToGrid(newPoint);
 						samplePoints.push_back(newPoint);
@@ -250,7 +250,7 @@ class Viewer : public Window {
 					}
 				}
 			}
-			cout << samplePoints.size() << endl;
+	
 			treeParticles.reserve(samplePoints.size());
 			for (int i= 0; i < samplePoints.size(); i++) {
 				vec2 point= samplePoints[i];
@@ -642,7 +642,7 @@ class Viewer : public Window {
 
 
 		// plane information
-		vec3 planeScale= vec3(10.0f, 0.1f, 10.0f);
+		vec3 planeScale= vec3(100.0f, 0.1f, 100.0f);
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 		float xDim;
 		float zDim;
@@ -668,8 +668,8 @@ class Viewer : public Window {
 		vector<vector<vec2>> gridTrees;
 		int numXCells;
 		int numZCells;
-		float treeCellSize= 2.0f;
-		int numPointsAround= 20;
+		float treeCellSize= 1.7f;
+		int numPointsAround= 15;
 };
 
 int main(int argc, char** argv)
