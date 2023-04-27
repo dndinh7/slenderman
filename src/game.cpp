@@ -426,6 +426,8 @@ class Viewer : public Window {
 			
 			slenderman.isVisible= false;
 
+			slenderman.pos= vec3(0, -0.5 + slenderman.getDimensions().y / 2, 0);
+
 			for (int i= 0; i < treeParticles.size(); i++) {
 				renderingItems.push_back(&treeParticles[i]);
 			}
@@ -463,14 +465,41 @@ class Viewer : public Window {
       }
     }
 
-    void mouseDown(int button, int mods) {
-    }
 
-    void mouseUp(int button, int mods) {
-    }
+    void spawnSlender() {
+			if (player.getPagesCollected() > 0) {
+				if (slendermanVisibleTime < 0) {
+					slendermanVisibleTime= randBound(9, 19);
+				}
 
-    void scroll(float dx, float dy) {
-    }
+				if (slendermanSpawnTime < 0) {
+					slendermanSpawnTime= randBound(25.0f, 48.0f);
+				}
+
+
+				// make him appear 
+				if (timeSinceLastSpawn >= slendermanSpawnTime && !slenderman.isVisible) {
+					slenderman.isVisible= true;
+					slendermanSpawnTime= -1.0f;
+					timeSinceVisibility= 0.0f;
+
+				}
+
+				if (timeSinceVisibility >= slendermanVisibleTime && slenderman.isVisible) {
+					slenderman.isVisible= false;
+					slendermanVisibleTime= -1.0f;
+					timeSinceLastSpawn= 0.0f;
+				}
+
+				if (!slenderman.isVisible) {
+					timeSinceLastSpawn+= dt();	
+				} else {
+					timeSinceVisibility+= dt();
+				}
+				
+
+			}
+		}
 
 		void checkPageProximity() {
 			for (auto& page: pages) {
@@ -671,6 +700,8 @@ class Viewer : public Window {
 
 				isWin();
 
+				spawnSlender();
+
 				updatePlayerPosition();
 
 				lateUpdate();
@@ -713,7 +744,6 @@ class Viewer : public Window {
 					}
 				renderer.endShader();
 				
-			
 
 				/*	
 				renderer.beginShader("spotlight");
@@ -726,10 +756,19 @@ class Viewer : public Window {
 				renderer.endShader();
 				*/
 			} else if (gameStatus == WIN) {
-				cout << "win" << endl;
+				renderer.fontColor(glm::vec4(0.95, 1.0, 0, 0.8));
+				std::string message = "YOU WIN! :]";
+				renderer.fontSize(128);
+				float x = 500 - renderer.textWidth(message) * 0.5f;
+				float y = 500;
+				renderer.text(message, x, y);
 			} else {
-				cout << "lose" << endl;
-
+				renderer.fontColor(glm::vec4(0.95, 0.0, 0, 0.8));
+				renderer.fontSize(128);
+				std::string message = "YOU LOSE! :[";
+				float x = 500 - renderer.textWidth(message) * 0.5f;
+				float y = 500;
+				renderer.text(message, x, y);
 			}
 
     }
@@ -748,6 +787,12 @@ class Viewer : public Window {
   protected:
     Player player;
     Object slenderman;
+
+		// in seconds
+		float slendermanVisibleTime= -1.0f;
+		float slendermanSpawnTime= -1.0f;
+		float timeSinceLastSpawn= 0.0f;
+		float timeSinceVisibility= 0.0f;
 
     vec4 lightPosition;
     vec3 lightIntensityAmbient;
@@ -784,6 +829,10 @@ class Viewer : public Window {
 
 		// pages
 		vector<Page> pages;
+
+		// pages collected info
+		int pagesX= 750;
+		int pagesY= 100;
 
 		
 		int numXCells;
