@@ -1,9 +1,11 @@
 // Bryn Mawr College, alinen, 2020
 //
+
 /**
  * Lerping Cameras: 
  * https://superhedral.com/2021/10/30/lerping-cameras-in-unity/
  * http://devmag.org.za/2009/05/03/poisson-disk-sampling/
+ * https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 */
 
 
@@ -469,20 +471,44 @@ class Viewer : public Window {
     void spawnSlender() {
 			if (player.getPagesCollected() > 0) {
 				if (slendermanVisibleTime < 0) {
-					slendermanVisibleTime= randBound(9, 19);
+					//slendermanVisibleTime= randBound(9, 19);
+					slendermanVisibleTime= randBound(5, 10);
 				}
 
 				if (slendermanSpawnTime < 0) {
-					slendermanSpawnTime= randBound(25.0f, 48.0f);
+					//slendermanSpawnTime= randBound(25.0f, 48.0f);
+					slendermanSpawnTime= randBound(5, 10);
 				}
+
+				cout << "spawn: " << slendermanSpawnTime << endl;
+				cout << "spawnTime: " << timeSinceLastSpawn << endl;
+				cout << "vis: " << slendermanVisibleTime << endl;
+				cout << "visTime: " << timeSinceVisibility << endl;
 
 
 				// make him appear 
 				if (timeSinceLastSpawn >= slendermanSpawnTime && !slenderman.isVisible) {
+					// want the position to be behind the player
+					vec3 v= normalize(player.getZAxis());
+					vec3 k= vec3(0, 1, 0);
+
+					// want slenderman to spawn behind the player
+					float randAngle= glm::radians(randBound(160, 250));
+					float randRadius= randBound(2.2, 7.8);
+
+					vec3 vRot= v*cos(randAngle) +
+						cross(k, v)*sin(randAngle) +
+						k*(dot(k, v)) * (1-cos(randAngle));
+
+					vec3 pPos= player.getPos();
+
+					vec3 newSlenderPos= pPos + vRot * randRadius;
+					newSlenderPos.y= slenderman.pos.y; // y should stay static
+					slenderman.pos= newSlenderPos;
+
 					slenderman.isVisible= true;
 					slendermanSpawnTime= -1.0f;
 					timeSinceVisibility= 0.0f;
-
 				}
 
 				if (timeSinceVisibility >= slendermanVisibleTime && slenderman.isVisible) {
