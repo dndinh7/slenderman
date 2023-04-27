@@ -10,11 +10,13 @@ if (WIN32) # Include win64 platforms
   set(INCLUDE_DIRS
      ./src/agl
      ./src
-     ./external/include )
+     ./external/include
+     ./external/fmod/inc )
 
   set(LIBRARY_DIRS
     lib
-    ./external/lib)
+    ./external/lib
+    ./external/fmod/lib/x64)
 
   set(CMAKE_CXX_STANDARD 14)
   set(CMAKE_CXX_FLAGS 
@@ -90,7 +92,6 @@ set(SOURCES
     src/osutils.h
     src/osutils.cpp
     src/entities/entity.h
-    src/entities/enemy.h
     src/entities/player.h
     src/objects/object.h
     )
@@ -107,7 +108,16 @@ set(SHADERS
     )
 
 add_executable(game src/game.cpp ${SOURCES} ${SHADERS})
-target_link_libraries(game ${CORE})
+target_link_libraries(game ${CORE} fmod)
+if (WIN32)
+  add_custom_command(TARGET game POST_BUILD        # Adds a post-build event to MyTest
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  # which executes "cmake - E copy_if_different..."
+        "${PROJECT_SOURCE_DIR}/external/fmod/lib/x64/fmod.dll"      # <--this is in-file
+        $<TARGET_FILE_DIR:game>)
+  set_property(TARGET game
+    PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+endif()
+
 
 if (WIN32)
   source_group("shaders" FILES ${SHADERS})

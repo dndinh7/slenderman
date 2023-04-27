@@ -23,6 +23,10 @@
 #include "entities/player.h"
 #include "objects/object.h"
 #include <set>
+#include "fmod_errors.h"
+#include <cstdlib>
+#include <iostream>
+#include "fmod.hpp"
 
 using namespace std;
 using namespace glm;
@@ -111,6 +115,26 @@ class Viewer : public Window {
   public:
     Viewer() : Window() {
     }
+
+	~Viewer() {
+		if (crickets != NULL) {
+			result = crickets->release();
+			ERRCHECK(result);
+		}
+
+		if (flashlightButton != NULL) {
+			result = flashlightButton->release();
+			ERRCHECK(result);
+		}
+
+		if (glitching != NULL) {
+			result = glitching->release();
+			ERRCHECK(result);
+		}
+
+		result = system->release();
+		ERRCHECK(result);
+	}
 
 		float randBound(float lowerBound, float upperBound) {
     	return rand() / float(RAND_MAX) * (upperBound - lowerBound) + lowerBound;
@@ -454,7 +478,62 @@ class Viewer : public Window {
 				pages[i].parent= &treeParticles[randTreeIdx];
 				renderingItems.push_back(&pages[i]);
 			}
+
+
+			// SOUNDS ------------------------------------
+			initSounds();
+
     }
+
+	void ERRCHECK(FMOD_RESULT result) {
+		if (result != FMOD_OK)
+		{
+			printf("FMOD error! (%d) %s\n",
+				result, FMOD_ErrorString(result));
+			exit(-1);
+		}
+	}
+
+	void initSounds() {
+		result = FMOD::System_Create(&system);
+		ERRCHECK(result);
+
+		result = system->init(100, FMOD_INIT_NORMAL, 0);
+		ERRCHECK(result);
+
+		// background noise
+		result = system->createStream(
+			"../sounds/crickets.wav",
+			FMOD_DEFAULT, 0, &crickets);
+		ERRCHECK(result);
+
+		result = crickets->setMode(FMOD_LOOP_NORMAL);
+		ERRCHECK(result);
+
+		// set volume while paused
+		result = system->playSound(crickets, 0, true, &backgroundChannel);
+		ERRCHECK(result);
+
+		result = backgroundChannel->setVolume(0.15f);
+		ERRCHECK(result);
+
+		result = backgroundChannel->setPaused(false);
+		ERRCHECK(result);
+
+		// init foreground
+
+		result = system->createStream(
+			"../sounds/flashlight.wav",
+			FMOD_DEFAULT, 0, &flashlightButton);
+		ERRCHECK(result);
+
+		result = system->createStream(
+			"../sounds/slender_static.mp3",
+			FMOD_DEFAULT, 0, &glitching);
+		ERRCHECK(result);
+
+
+	}
 
     void mouseMotion(int x, int y, int dx, int dy) {
       // we're subtracting because it's opposite to the eyePos
@@ -574,6 +653,24 @@ class Viewer : public Window {
 						// will take directDmg per second if they stare directly at
 						// slender
 						player.decreaseHealth(hurtRatio * directDmg * dt());
+
+
+						// sound to indicate he's here
+
+						if (timeSinceJumpScareSound > jumpScareSoundDuration) {
+							result = system->playSound(glitching, 0, true, &glitchChannel);
+							ERRCHECK(result);
+
+							result = glitchChannel->setVolume(0.25f);
+							ERRCHECK(result);
+
+							result = glitchChannel->setPaused(false);
+							ERRCHECK(result);
+
+							timeSinceJumpScareSound = 0.0f;
+						}
+
+
 					} else {
 						slenderman.useGlitch= false;
 						if (timeSinceDamage >= timeToRecover) { 
@@ -581,6 +678,7 @@ class Viewer : public Window {
 						} else {
 							timeSinceDamage+= dt();
 						}
+
 					}
 				} else {
 					slenderman.useGlitch= false;
@@ -641,9 +739,9 @@ class Viewer : public Window {
 
     // handles WASD press/hold
     void keyDown(int key, int mods) {
-			if (key == GLFW_KEY_LEFT_SHIFT) {
-				player.setVelocity(player.getVelocity() * 1.5f);
-			}
+	if (key == GLFW_KEY_LEFT_SHIFT) {
+		player.setVelocity(player.getVelocity() * 1.5f);
+	}
 
       if (key == GLFW_KEY_W) {
         WASD_KEY_HELD[W_KEY]= true;
@@ -661,15 +759,27 @@ class Viewer : public Window {
         WASD_KEY_HELD[D_KEY]= true;
       }
 
-			if (key == GLFW_KEY_F) {
-				vec3 tempDiffuse= this->lightIntensityDiffuse;
-				vec3 tempSpecular= this->lightIntensitySpecular;
-				this->lightIntensityDiffuse= this->secondDiffuseIntensity;
-				this->lightIntensitySpecular= this->secondSpecularIntensity;
 
-				this->secondDiffuseIntensity= tempDiffuse;
-				this->secondSpecularIntensity= tempSpecular;
-			}
+		if (key == GLFW_KEY_F) {
+			vec3 tempDiffuse= this->lightIntensityDiffuse;
+			vec3 tempSpecular= this->lightIntensitySpecular;
+			this->lightIntensityDiffuse= this->secondDiffuseIntensity;
+			this->lightIntensitySpecular= this->secondSpecularIntensity;
+
+			this->secondDiffuseIntensity= tempDiffuse;
+			this->secondSpecularIntensity= tempSpecular;
+
+			result = system->playSound(flashlightButton, 0, true, &userChannel);
+			ERRCHECK(result);
+
+			result = userChannel->setVolume(0.3f);
+			ERRCHECK(result);
+
+			result = userChannel->setPaused(false);
+			ERRCHECK(result);
+
+
+		}
     }
 
     // updates the eyePos when the user presses WASD
@@ -709,12 +819,14 @@ class Viewer : public Window {
 				vec3 xAxis= player.getXAxis();
 
 				targetPos-= velocity * dt() * xAxis;
+
       }
 
-			targetPos.x= clamp(targetPos.x, -xDim / 2, xDim / 2);
-			targetPos.z= clamp(targetPos.z, -zDim / 2, zDim / 2);
 
-			player.setTargetPosition(targetPos);
+		targetPos.x= clamp(targetPos.x, -xDim / 2, xDim / 2);
+		targetPos.z= clamp(targetPos.z, -zDim / 2, zDim / 2);
+
+		player.setTargetPosition(targetPos);
     }
 
     void updateLookPos() {
@@ -849,6 +961,8 @@ class Viewer : public Window {
 
 				lateUpdate();
 
+				timeSinceJumpScareSound += dt();
+
 				player.setCameraAspect(((float) width()) / height());
 				renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
 					player.getCameraNear(), player.getCameraFar());
@@ -948,6 +1062,11 @@ class Viewer : public Window {
     Player player;
     Object slenderman;
 
+		// time since the audio was played, I really don't know how to stop playing
+		// the sound, so I time it since the last audio file
+		float timeSinceJumpScareSound = 20.0f;
+		float jumpScareSoundDuration = 6.3f;
+
 		// will randomly glitch slenderman
 		float randTimeLoseGlitch= -1.0f;
 		float timeSinceLoseGlitch= 0.0f;
@@ -1016,6 +1135,16 @@ class Viewer : public Window {
 		int numZCells;
 		float treeCellSize= 1.85f;
 		int numPointsAround= 15;
+
+	// sounds
+		FMOD_RESULT result;
+		FMOD::System* system = NULL;
+		FMOD::Channel* backgroundChannel = NULL;
+		FMOD::Channel* glitchChannel = NULL;
+		FMOD::Channel* userChannel = NULL;
+		FMOD::Sound* flashlightButton;
+		FMOD::Sound* glitching;
+		FMOD::Sound* crickets;
 };
 
 int main(int argc, char** argv)
