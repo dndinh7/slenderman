@@ -558,8 +558,11 @@ class Viewer : public Window {
 					
 					float angle= acos(ratio);
 
-					// fov of 70 to get hurt
+					// fov of 50 to get hurt
 					if (angle < hurtAngle) {
+						if (angle < glitchAngle) slenderman.useGlitch= true; // want to glitch it here
+						else slenderman.useGlitch= false;
+
 						// currently getting damaged
 						timeSinceDamage= 0.0f;
 
@@ -570,6 +573,7 @@ class Viewer : public Window {
 						// slender
 						player.decreaseHealth(hurtRatio * directDmg * dt());
 					} else {
+						slenderman.useGlitch= false;
 						if (timeSinceDamage >= timeToRecover) { 
 							player.increaseHealth(HPS * dt());
 						} else {
@@ -577,6 +581,7 @@ class Viewer : public Window {
 						}
 					}
 				} else {
+					slenderman.useGlitch= false;
 					if (timeSinceDamage >= timeToRecover) { 
 						player.increaseHealth(HPS * dt());
 					} else {
@@ -768,7 +773,45 @@ class Viewer : public Window {
       vec3 c= vec3(0.1f);
       renderer.setUniform("Fog.color", c);
 			renderer.setUniform("useFog", useFog);
+
+			// glitches
+			renderer.setUniform("iResolution", vec2(width(), height()));
+			renderer.setUniform("iTime", elapsedTime());
+			renderer.setUniform("useGlitch", slenderman.useGlitch);
     }
+
+		void randomLosingGlitches() {
+			if (randTimeLoseGlitch < 0.0f) {
+				randTimeLoseGlitch= randBound(1.5, 3.5);
+			}
+
+			if (randTimeGlitching < 0.0f) {
+				randTimeGlitching= randBound(0.1, 0.5);
+			}
+
+			cout << "randTime: " << randTimeLoseGlitch << endl;
+			cout << "randTimeSince: " << timeSinceLoseGlitch << endl;
+			cout << "timeGlitch: " << randTimeGlitching << endl;
+			cout << "timeGlitchDuring: " << timeGlitching << endl;
+
+			if (timeGlitching >= randTimeGlitching && slenderman.useGlitch) {
+				randTimeGlitching= -1.0f;
+				timeSinceLoseGlitch= 0.0f;
+				slenderman.useGlitch= false;
+			}
+
+			if (timeSinceLoseGlitch >= randTimeLoseGlitch && !slenderman.useGlitch) {
+				randTimeLoseGlitch= -1.0f;
+				timeGlitching= 0.0f;
+				slenderman.useGlitch= true;
+			}
+
+			if (slenderman.useGlitch) {
+				timeGlitching+= dt();
+			} else {
+				timeSinceLoseGlitch+= dt();
+			}
+		}
 
     void draw() {
 			if (gameStatus == ONGOING) {
@@ -874,8 +917,11 @@ class Viewer : public Window {
 					renderer.text(message, x, y);
 				*/
 				
-				renderer.beginShader("simple-texture");
-					renderer.texture("Image", slenderman.texture);
+				randomLosingGlitches();
+				renderer.beginShader("spotlight");
+					this->lightIntensityDiffuse= vec3(0);
+					this->lightIntensitySpecular= vec3(0);
+					initSpotlightShader(slenderman.texture, vec2(1), false, false);
 					slenderman.render(renderer, planeLocation.y, player.getPos());
 				renderer.endShader();
 			}
@@ -897,8 +943,16 @@ class Viewer : public Window {
     Player player;
     Object slenderman;
 
+		// will randomly glitch slenderman
+		float randTimeLoseGlitch= -1.0f;
+		float timeSinceLoseGlitch= 0.0f;
+
+		float randTimeGlitching= -1.0f;
+		float timeGlitching= 0.0f;
+
 		// the player will lose health 
 		float hurtAngle= radians(50.0f);
+		float glitchAngle= radians(10.0f);
 		float directDmg= 35.0f;
 		// hp per second
 		float HPS= 3.0f;

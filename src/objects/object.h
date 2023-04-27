@@ -124,7 +124,7 @@ struct Object : public RenderingItem{
 		vec3 scale= vec3(1);
 		float heading= 0.0f;
 
-		
+		bool useGlitch= false;	
 		bool visible= false;
 
 
