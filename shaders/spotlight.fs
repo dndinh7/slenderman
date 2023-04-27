@@ -31,8 +31,17 @@ uniform bool HasUV;
 uniform bool useAlpha;
 in vec2 uv;
 
-uniform vec2 uvScale;
 
+// fog info
+struct FogInfo {
+  float maxDist; // distance where camera can only see fog
+  float minDist; // distance from eye, so that there is no fog
+  vec3 color; // color of fog
+};
+uniform FogInfo Fog;
+
+
+uniform vec2 uvScale;
 out vec4 FragColor;
 
 vec4 phongSpot() {
@@ -92,6 +101,16 @@ vec4 phongSpot() {
 
 void main()
 {
+	// fog from camera
+	float dist= abs(p_eye.z);
+  float fogFactor;
+  // linear fog factor
+  fogFactor= (Fog.maxDist - dist) / (Fog.maxDist - Fog.minDist);
+  fogFactor= max(min(fogFactor, 1.0f), 0.0f);
   
-  FragColor = phongSpot();
+	vec4 phongColor= phongSpot();
+
+	vec3 color= mix(Fog.color, phongColor.xyz, fogFactor);
+
+  FragColor = vec4(color, phongColor.w);
 }

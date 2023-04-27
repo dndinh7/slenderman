@@ -3,6 +3,7 @@
 /**
  * Lerping Cameras: 
  * https://superhedral.com/2021/10/30/lerping-cameras-in-unity/
+ * http://devmag.org.za/2009/05/03/poisson-disk-sampling/
 */
 
 
@@ -29,6 +30,7 @@ enum KEY {
   W_KEY, A_KEY, S_KEY, D_KEY
 };
 
+
 struct Billboard : public RenderingItem {
 	float yScale;
 	float yTranslate;
@@ -42,7 +44,7 @@ struct Billboard : public RenderingItem {
 		return thetaY;
 	}
 
-	void render(Renderer& renderer, float planeLocationY) {
+	virtual void render(Renderer& renderer, float planeLocationY) {
 		renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
 		renderer.translate(vec3(-0.5, -0.5, 0));
 		renderer.quad();
@@ -52,6 +54,23 @@ struct Billboard : public RenderingItem {
 struct Grass: public Billboard {};
 
 struct Tree: public Billboard {};
+
+struct Page : public RenderingItem {
+	float yScale;
+	float yTranslate;
+	float widthRatio;
+
+	vec3 headingAxis= vec3(0, 1, 0);
+	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
+		renderer.push();
+			renderer.translate(this->pos);
+			renderer.rotate(this->calculateHeading(playerPos), headingAxis);
+			renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
+			renderer.translate(vec3(-0.5, -0.5, 0));
+			renderer.quad();
+		renderer.pop();
+	}
+};
 
 
 class Viewer : public Window {
@@ -63,12 +82,34 @@ class Viewer : public Window {
     	return rand() / float(RAND_MAX) * (upperBound - lowerBound) + lowerBound;
   	}
 
+		void initPages() {
+			Image img;
+			// names are 1-8
+			for (int i= 1; i <= 8; i++) {
+				string filename= std::to_string(i) + ".png";
+				img.load("../textures/pages/" + filename, true);
+				renderer.loadTexture(filename, img, 0);
+				Page page;
+
+
+				page.yScale= 0.5f;
+				page.widthRatio= ((float) img.width() / img.height());
+				page.yTranslate= -0.5 + 0.5 * page.yScale;
+				page.pos= vec3(randBound(-xDim / 2, xDim / 2), page.yTranslate, randBound(-zDim / 2, zDim / 2));
+				page.texture= filename;
+				page.usesHeading= false;
+
+
+				pages.push_back(page);
+			}
+		}
+
 		void initPlayerFlashlight() {
 			Image img;
 			img.load("../textures/flashlight/flashlight.jpg", true);
 			renderer.loadTexture("flashlightTex", img, 0);
 
-			vec3 pos= vec3(-0.1, -0.1, 0.15);
+			vec3 pos= vec3(-0.11, -0.11, 0.15);
 			vec3 scale= vec3(0.15);
 
 			Object flashlight= Object(models["flashlight-uv"], "flashlightTex", pos, scale);
@@ -220,7 +261,8 @@ class Viewer : public Window {
 
 			numXCells= ceil(xDim/treeCellSize);
 			numZCells= ceil(zDim/treeCellSize);
-			this->gridTrees= vector<vector<vec2>>(numXCells, std::vector<vec2>(numZCells, vec2(-1)));
+			vector<vector<vec2>> gridTrees= 
+				vector<vector<vec2>>(numXCells, std::vector<vec2>(numZCells, vec2(-1)));
 
 			deque<vec2> treeCellProcessor= deque<vec2>();
 			vector<vec2> samplePoints= vector<vec2>();
@@ -250,7 +292,7 @@ class Viewer : public Window {
 					}
 				}
 			}
-	
+
 			treeParticles.reserve(samplePoints.size());
 			for (int i= 0; i < samplePoints.size(); i++) {
 				vec2 point= samplePoints[i];
@@ -288,9 +330,7 @@ class Viewer : public Window {
 					if (item->isVisible) {
 						initSpotlightShader(item->texture, vec2(1), item->useAlpha);
 						renderer.push();
-							renderer.translate(item->pos);
-							renderer.rotate(item->calculateHeading(player.getPos()), item->headingAxis);
-							item->render(renderer, planeLocation.y);
+							item->render(renderer, planeLocation.y, player.getPos());
 						renderer.pop();
 					}	
 				}
@@ -328,11 +368,11 @@ class Viewer : public Window {
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
 			initBillboards();
+			initPages();
 			billboards.reserve(treeParticles.size() + numGrass);
 
 			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
 			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
-
       // init camera
       CameraInfo camera;
 
@@ -365,6 +405,10 @@ class Viewer : public Window {
 				renderingItems.push_back(&billboards[i]);
 			}
 			renderingItems.push_back(&slenderman);
+
+			for (int i= 0; i < pages.size(); i++) {
+				renderingItems.push_back(&pages[i]);
+			}
     }
 
     void mouseMotion(int x, int y, int dx, int dy) {
@@ -393,7 +437,7 @@ class Viewer : public Window {
     // handles WASD release
     void keyUp(int key, int mods) {
 			if (key == GLFW_KEY_LEFT_SHIFT) {
-				player.setVelocity(player.getVelocity() * 0.5f);
+				player.setVelocity(player.getVelocity() / 1.5f);
 			}
 
       if (key == GLFW_KEY_W) {
@@ -416,7 +460,7 @@ class Viewer : public Window {
     // handles WASD press/hold
     void keyDown(int key, int mods) {
 			if (key == GLFW_KEY_LEFT_SHIFT) {
-				player.setVelocity(player.getVelocity() * 2);
+				player.setVelocity(player.getVelocity() * 1.5f);
 			}
 
       if (key == GLFW_KEY_W) {
@@ -448,7 +492,7 @@ class Viewer : public Window {
 
     // updates the eyePos when the user presses WASD
     void updatePlayerPosition() {
-			vec3 targetPos= player.getPos();
+			vec3 targetPos= player.getTargetPosition();
 
 
       if (WASD_KEY_HELD[W_KEY]) {
@@ -456,7 +500,7 @@ class Viewer : public Window {
 				float velocity= player.getVelocity();
 				vec3 zAxis= player.getZAxis();
 
-				targetPos+= velocity * zAxis;
+				targetPos+= velocity * dt() * zAxis;
       }
 
       if (WASD_KEY_HELD[A_KEY]) {
@@ -465,7 +509,7 @@ class Viewer : public Window {
 				float velocity= player.getVelocity();
 				vec3 xAxis= player.getXAxis();
 
-				targetPos+= velocity * xAxis;
+				targetPos+= velocity * dt() * xAxis;
       }
 
       if (WASD_KEY_HELD[S_KEY]) {
@@ -474,7 +518,7 @@ class Viewer : public Window {
 				float velocity= player.getVelocity();
 				vec3 zAxis= player.getZAxis();
 
-				targetPos-= velocity * zAxis;
+				targetPos-= velocity * dt() * zAxis;
       }
 
       if (WASD_KEY_HELD[D_KEY]) {
@@ -482,7 +526,7 @@ class Viewer : public Window {
 				float velocity= player.getVelocity();
 				vec3 xAxis= player.getXAxis();
 
-				targetPos-= velocity * xAxis;
+				targetPos-= velocity * dt() * xAxis;
       }
 
 			player.setTargetPosition(targetPos);
@@ -539,6 +583,15 @@ class Viewer : public Window {
 			renderer.setUniform("useAlpha", useAlpha);
 			
 			renderer.texture("diffuseTexture", texture);
+
+			// fog info
+      renderer.setUniform("Fog.maxDist", 5.0f);
+      renderer.setUniform("Fog.minDist", 1.75f);
+      // this is gray fog
+      //vec3 c= vec3(0xab/255.0f, 0xae/255.0f, 0xb0/255.0f);
+      // but I like the black fog better
+      vec3 c= vec3(0.1f);
+      renderer.setUniform("Fog.color", c);
     }
 
     void draw() {
@@ -584,6 +637,7 @@ class Viewer : public Window {
 
 			drawRenderingItems();
 
+			
 			renderer.beginShader("spotlight");
 				renderer.push();
 				renderer.translate(player.getPos());
@@ -599,6 +653,7 @@ class Viewer : public Window {
 					renderer.pop();
 				}
 			renderer.endShader();
+			
 		
 
 			/*	
@@ -615,9 +670,9 @@ class Viewer : public Window {
     }
 
 		void lateUpdate() {
-			vec3 curPlayerPos= LERP(player.getPos(), player.getTargetPosition(), dt());
+			vec3 curPlayerPos= LERP(player.getPos(), player.getTargetPosition(), 0.25);
 			player.setPos(curPlayerPos);
-			player.setTargetPosition(curPlayerPos);
+
 
 		}
 
@@ -642,7 +697,7 @@ class Viewer : public Window {
 
 
 		// plane information
-		vec3 planeScale= vec3(100.0f, 0.1f, 100.0f);
+		vec3 planeScale= vec3(10.0f, 0.01f, 10.0f);
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 		float xDim;
 		float zDim;
@@ -665,10 +720,13 @@ class Viewer : public Window {
 		enum GameStatus {WIN, LOSE, ONGOING};
 		GameStatus gameStatus= ONGOING;
 
-		vector<vector<vec2>> gridTrees;
+		// pages
+		vector<Page> pages;
+
+		
 		int numXCells;
 		int numZCells;
-		float treeCellSize= 1.7f;
+		float treeCellSize= 2.0f;
 		int numPointsAround= 15;
 };
 

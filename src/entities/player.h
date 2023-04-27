@@ -89,6 +89,9 @@ namespace assets {
 
 			float getCameraTargetElevation() { return this->camera.targetElevation; };
 			void  setCameraTargetElevation(float elevation) { this->camera.targetElevation= elevation; };
+			
+			int getPagesCollected() { return this->pagesCollected; };
+			void incrementPagesCollected() { this->pagesCollected++; };
     private:
 			vec3 targetPosition= vec3(0);
 			
@@ -100,6 +103,8 @@ namespace assets {
 
       // flashlight should be the first element
       std::vector<Object> children;
+
+			int pagesCollected= 0;
 
 
   };

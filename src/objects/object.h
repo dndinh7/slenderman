@@ -21,12 +21,6 @@ struct RenderingItem {
 	RenderingItem(vec3 pos, quat rot, vec3 scale) :
 		pos(pos), rot(rot), scale(scale), texture("") {};
 
-	virtual quat getHeadingRotToPlayer(vec3 playerPos) {
-		vec3 n= normalize(playerPos - this->pos);
-		float thetaY= atan2(n.x, n.z);
-		return quat(angleAxis(thetaY, headingAxis));
-	}
-
 	virtual float calculateHeading(vec3 playerPos) {
 		vec3 n= normalize(playerPos - this->pos);
 		float thetaY= atan2(n.x, n.z);
@@ -34,7 +28,7 @@ struct RenderingItem {
 	}
 
 	// must implement render
-	virtual void render(Renderer& renderer, float planeLocationY) {
+	virtual void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
 		// should not get here
 		return;
 	};
@@ -46,6 +40,7 @@ struct RenderingItem {
 	std::string texture;
 	bool useAlpha= true;
 	bool isVisible= true;
+	bool usesHeading= true;
 
 };
 
@@ -107,8 +102,10 @@ struct Object : public RenderingItem{
 		}
 
 
-		void render(Renderer& renderer, float planeLocationY) {
+		void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
 			renderer.translate(vec3(0, -(planeLocationY + this->dimensions.y * 0.5f), 0));
+			renderer.translate(this->pos);
+			renderer.rotate(this->calculateHeading(playerPos), this->headingAxis);
 			renderer.scale(this->scale);
 			renderer.rotate(this->getRot());
 			renderer.translate(-this->getMidPoint());
