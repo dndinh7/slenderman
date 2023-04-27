@@ -18,6 +18,7 @@
 #include "osutils.h"
 #include "entities/player.h"
 #include "objects/object.h"
+#include <set>
 
 using namespace std;
 using namespace glm;
@@ -67,23 +68,24 @@ struct Page : public RenderingItem {
 	vec3 headingAxis= vec3(0, 1, 0);
 	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
 		renderer.push();
-			renderer.push();
-				renderer.translate(parent->pos);
-				renderer.rotate(parent->calculateHeading(playerPos), headingAxis);
-				renderer.translate(vec3(-0.5, -0.5, 0));
-			renderer.pop();
+			renderer.translate(parent->pos);
+			renderer.rotate(parent->calculateHeading(playerPos), headingAxis);
+
 			renderer.translate(this->pos);
-			renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
+			renderer.scale(vec3(this->widthRatio * this->yScale * 0.75, this->yScale, 1));
+			renderer.translate(vec3(-0.5, -0.5, 0));
 			renderer.quad();
 		renderer.pop();
 	}
 
+	vec3 getWorldPos(vec3 playerPos) {
+		vec3 toPlayer= normalize(playerPos - parent->getWorldPos(playerPos));
+
+		return toPlayer * 0.1f + parent->getWorldPos(playerPos);
+	}
+
 	Tree* parent;
 };
-
-
-
-
 
 class Viewer : public Window {
   public:
@@ -104,10 +106,10 @@ class Viewer : public Window {
 				Page page;
 
 
-				page.yScale= 0.5f;
+				page.yScale= 0.3f;
 				page.widthRatio= ((float) img.width() / img.height());
 
-				page.pos= vec3(0, 0, 0.05f); // local to tree, so we want it to be in front
+				page.pos= vec3(0, -0.50, 0.1f); // local to tree, so we want it to be in front
 				page.texture= filename;
 				page.usesHeading= false;
 
@@ -330,8 +332,8 @@ class Viewer : public Window {
 			// we sort by descending order, so we render farther ones first
 			std::sort(renderingItems.begin(), renderingItems.end(), [&](RenderingItem* b1, RenderingItem* b2) 
 			{
-				float dSqr1 = length2(b1->pos - cameraPos);
-				float dSqr2 = length2(b2->pos - cameraPos);
+				float dSqr1 = length2(b1->getWorldPos(cameraPos) - cameraPos);
+				float dSqr2 = length2(b2->getWorldPos(cameraPos) - cameraPos);
 				
 				return (dSqr1 > dSqr2);
 			});
@@ -379,7 +381,7 @@ class Viewer : public Window {
 
 			initBillboards();
 			initPages();
-			
+
       // init camera
       CameraInfo camera;
 
@@ -417,8 +419,16 @@ class Viewer : public Window {
 			}
 
 			renderingItems.push_back(&slenderman);
-			
+
+			// ensure that a tree does not have multiple pages
+			set<int> treeIndicesUsed;
 			for (int i= 0; i < pages.size(); i++) {
+				int randTreeIdx= rand() % treeParticles.size();
+				while (treeIndicesUsed.count(randTreeIdx) == 1) {
+					randTreeIdx= rand() % treeParticles.size();
+				}
+				treeIndicesUsed.insert(randTreeIdx);
+				pages[i].parent= &treeParticles[randTreeIdx];
 				renderingItems.push_back(&pages[i]);
 			}
     }
@@ -720,9 +730,6 @@ class Viewer : public Window {
 
 		// tree information
 		vector<Tree> treeParticles;
-
-		// billboard information
-		vector<Billboard> billboards;
 
 		vector<RenderingItem*> renderingItems;
 

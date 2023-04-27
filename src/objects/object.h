@@ -33,6 +33,8 @@ struct RenderingItem {
 		return;
 	};
 
+	virtual vec3 getWorldPos(vec3 playerPos) { return this->pos; };
+
 	vec3 pos= vec3(0);
 	quat rot= quat(vec3(0, 0, 0));
 	vec3 scale= vec3(1);
