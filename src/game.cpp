@@ -9,6 +9,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <deque>
 #include <algorithm>
 #include <map>
 #include "agl/window.h"
@@ -84,6 +85,81 @@ class Viewer : public Window {
 			}
 		}
 		
+		vec2 pointToGrid(vec2 point) {
+			int x= (int)(point.x / treeCellSize);
+			int z= (int)(point.y / treeCellSize);
+
+			return vec2(x, z);
+		}
+
+		Tree createTree(vec2 point, float widthRatio, string tex) {
+			Tree tree;
+			tree.yScale= randBound(1.5, 2);
+			tree.yTranslate= -0.5 + 0.5 * tree.yScale;
+			tree.pos= vec3(point.x, tree.yTranslate, point.y);
+
+			tree.texture= tex;
+			tree.widthRatio= widthRatio;
+
+			return tree;
+		}
+
+		vec2 generateRandomPointAround(vec2 point, float minDist) {
+			float r1= randBound(0.0, 1.0);
+			float r2= randBound(0.0f, 1.0f);
+
+			// random radius
+			float radius= minDist * (r1 + 1);
+
+			float angle= 2 * M_PI * r2;
+
+			float x= point.x + radius * cos(angle);
+			float z= point.y + radius * sin(angle);
+
+			return vec2(x, z);
+
+		}
+
+		float dist(vec2 p1, vec2 p2) {
+			return sqrt(pow((p1.x - p2.x), 2) + pow((p1.y - p2.y), 2));
+		}
+
+		vector<vec2> squareAroundPoint(const vector<vector<vec2>>& grid, vec2 gridPointIdx, int square) {
+			vector<vec2> gridPointIndices;
+
+			for (int i= -square/2; i <= square/2; i++) {
+				for (int j= -square/2; j <= square/2; j++) {
+					int xIdx= gridPointIdx.x - i;
+					int zIdx= gridPointIdx.y - j;
+					if (xIdx < 0 || xIdx >= numXCells) continue; // out of bounds
+					if (zIdx < 0 || zIdx >= numZCells) continue;
+
+					gridPointIndices.push_back(grid[xIdx][zIdx]);
+				}
+			}
+
+			return gridPointIndices;
+		}
+
+		// check that the point does not come to close to any other point in the neighborhood
+		bool inNeighborhood(const vector<vector<vec2>>& grid, vec2 point, float minDist) {
+			vec2 gridPointIdx= pointToGrid(point);
+
+			vector<vec2> cellsAroundPoint= squareAroundPoint(grid, gridPointIdx, 4);
+
+			for (auto cell : cellsAroundPoint) {
+				if (cell != vec2(-1)) {
+					if (dist(cell, point) < minDist) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		bool inRectangle(vec2 point) {
+			return point.x > 0 && point.x < xDim && point.y > 0 && point.y < zDim;
+		}
 
 		void initBillboards() {
 			Image img;
@@ -139,12 +215,47 @@ class Viewer : public Window {
 			treeTextures[0]= "fir";
 			treeTextures[1]= "pine";
 
-			for (int i= 0; i < numTrees; i++) {
-				Tree tree= treeParticles[i];
+			numXCells= ceil(xDim/treeCellSize);
+			numZCells= ceil(zDim/treeCellSize);
+			this->gridTrees= vector<vector<vec2>>(numXCells, std::vector<vec2>(numZCells, vec2(-1)));
+
+			deque<vec2> treeCellProcessor= deque<vec2>();
+			vector<vec2> samplePoints= vector<vec2>();
+
+			vec2 firstPoint= vec2(randBound(0, xDim-1), randBound(0, zDim-1));
+
+			treeCellProcessor.push_back(firstPoint);
+			samplePoints.push_back(firstPoint);
+
+			vec2 gridIdx= pointToGrid(firstPoint);
+			gridTrees[gridIdx.x][gridIdx.y]= firstPoint;
+
+			while (!treeCellProcessor.empty()) {
+				vec2 p= treeCellProcessor.front();
+				treeCellProcessor.pop_front();
+
+				for (int i= 0; i < numPointsAround; i++) {
+					vec2 newPoint= generateRandomPointAround(p, treeCellSize+1);
+
+					if (inRectangle(newPoint) && !inNeighborhood(gridTrees, newPoint, treeCellSize+1)) {
+						treeCellProcessor.push_back(newPoint);
+						samplePoints.push_back(newPoint);
+
+						vec2 newPointIdx= pointToGrid(newPoint);
+						samplePoints.push_back(newPoint);
+						gridTrees[newPointIdx.x][newPointIdx.y]= newPoint;
+					}
+				}
+			}
+			
+			treeParticles.reserve(samplePoints.size());
+			for (int i= 0; i < samplePoints.size(); i++) {
+				vec2 point= samplePoints[i];
+				Tree tree;
 				tree.yScale= randBound(1.5, 2);
 				tree.yTranslate= -0.5 + 0.5 * tree.yScale;
-				tree.pos= vec3(randBound(-planeScale.x * 0.40, planeScale.x * 0.40),
-					tree.yTranslate, randBound(-planeScale.z * 0.40, planeScale.z * 0.40));
+				tree.pos= vec3(point.x,
+					tree.yTranslate, point.y);
 
 				int texIndex= rand() % 2;
 				tree.texture= treeTextures[texIndex];
@@ -171,18 +282,23 @@ class Viewer : public Window {
 
 			renderer.beginShader("spotlight");
 				for (auto* item : renderingItems) {
-					initSpotlightShader(item->texture, vec2(1), item->useAlpha);
-					renderer.push();
-						renderer.translate(item->pos);
-						renderer.rotate(item->calculateHeading(player.getPos()), item->headingAxis);
-						item->render(renderer, planeLocation.y);
-					renderer.pop();
+					if (item->isVisible) {
+						initSpotlightShader(item->texture, vec2(1), item->useAlpha);
+						renderer.push();
+							renderer.translate(item->pos);
+							renderer.rotate(item->calculateHeading(player.getPos()), item->headingAxis);
+							item->render(renderer, planeLocation.y);
+						renderer.pop();
+					}	
 				}
       renderer.endShader();
 		}
 
     void setup() {
       setWindowSize(1000, 1000);
+
+			xDim= planeScale.x;
+			zDim= planeScale.z;
 				 
       renderer.loadShader("simple-texture",
         "../shaders/simple-texture.vs",
@@ -209,7 +325,7 @@ class Viewer : public Window {
       renderer.loadTexture("dead_grass", "../textures/dead_grass.png", 0);
 
 			initBillboards();
-			billboards.reserve(numTrees + numGrass);
+			billboards.reserve(treeParticles.size() + numGrass);
 
 			billboards.insert(billboards.end(), std::begin(grassParticles), std::end(grassParticles));
 			billboards.insert(billboards.end(), std::begin(treeParticles), std::end(treeParticles));
@@ -239,6 +355,8 @@ class Viewer : public Window {
 			renderer.loadTexture("slenderman_base", img, 0);
       slenderman= Object(models["slenderman"], "slenderman_base", vec3(0, 0, 0), 
 				vec3(0.283), quat(vec3(0, 0, 0)));
+			
+			slenderman.isVisible= false;
 
 			for (int i= 0; i < billboards.size(); i++) {
 				renderingItems.push_back(&billboards[i]);
@@ -452,7 +570,7 @@ class Viewer : public Window {
       // draw plane
 			
 			renderer.beginShader("spotlight");
-				initSpotlightShader("dead_grass", vec2(10.0), false);
+				initSpotlightShader("dead_grass", vec2(planeScale.x, planeScale.z), false);
 				renderer.push();
 					renderer.translate(planeLocation);
 					renderer.scale(planeScale);
@@ -469,7 +587,6 @@ class Viewer : public Window {
 				renderer.rotate(orientation);
 				for (Object &child: player.getChildren()) {
 					initSpotlightShader(child.getTexture(), vec2(1), false);
-					//renderer.texture("diffuseTexture", child.getTexture());
 						renderer.push();
 							renderer.translate(child.pos);
 							renderer.scale(child.scale);
@@ -522,16 +639,17 @@ class Viewer : public Window {
 
 
 		// plane information
-		vec3 planeScale= vec3(10.0f, 0.1f, 10.0f);
+		vec3 planeScale= vec3(100.0f, 0.1f, 100.0f);
 		vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
+		float xDim;
+		float zDim;
 		
 		// grass information
-		const int numGrass= 100;
-		Grass grassParticles[100];
+		const int numGrass= 500;
+		Grass grassParticles[500];
 
 		// tree information
-		const int numTrees= 100;
-		Tree treeParticles[100];
+		vector<Tree> treeParticles;
 
 		// billboard information
 		vector<Billboard> billboards;
@@ -544,7 +662,11 @@ class Viewer : public Window {
 		enum GameStatus {WIN, LOSE, ONGOING};
 		GameStatus gameStatus= ONGOING;
 
-
+		vector<vector<vec2>> gridTrees;
+		int numXCells;
+		int numZCells;
+		float treeCellSize= 2.0f;
+		int numPointsAround= 20;
 };
 
 int main(int argc, char** argv)

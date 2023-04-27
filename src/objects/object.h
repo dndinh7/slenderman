@@ -45,6 +45,7 @@ struct RenderingItem {
 	vec3 headingAxis= vec3(0, 1, 0);
 	std::string texture;
 	bool useAlpha= true;
+	bool isVisible= true;
 
 };
 
