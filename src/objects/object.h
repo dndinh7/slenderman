@@ -105,13 +105,17 @@ struct Object : public RenderingItem{
 
 
 		void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
-			renderer.translate(vec3(0, -(planeLocationY + this->dimensions.y * 0.5f), 0));
-			renderer.translate(this->pos);
-			renderer.rotate(this->calculateHeading(playerPos), this->headingAxis);
-			renderer.scale(this->scale);
-			renderer.rotate(this->getRot());
-			renderer.translate(-this->getMidPoint());
-			renderer.mesh(this->getMesh());
+			if (isVisible) {
+				renderer.push();
+				renderer.translate(vec3(0, -(planeLocationY + this->dimensions.y * 0.5f), 0));
+				renderer.translate(this->pos);
+				renderer.rotate(this->calculateHeading(playerPos), this->headingAxis);
+				renderer.scale(this->scale);
+				renderer.rotate(this->getRot());
+				renderer.translate(-this->getMidPoint());
+				renderer.mesh(this->getMesh());
+				renderer.pop();
+			}
 		}
 
 		// easy access and change

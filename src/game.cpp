@@ -47,13 +47,15 @@ struct Billboard : public RenderingItem {
 	}
 
 	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
-		renderer.push();
-			renderer.translate(this->pos);
-			renderer.rotate(this->calculateHeading(playerPos), headingAxis);
-			renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
-			renderer.translate(vec3(-0.5, -0.5, 0));
-			renderer.quad();
-		renderer.pop();
+		if (isVisible) {
+			renderer.push();
+				renderer.translate(this->pos);
+				renderer.rotate(this->calculateHeading(playerPos), headingAxis);
+				renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
+				renderer.translate(vec3(-0.5, -0.5, 0));
+				renderer.quad();
+			renderer.pop();
+		}
 	}
 };
 
@@ -67,15 +69,17 @@ struct Page : public RenderingItem {
 
 	vec3 headingAxis= vec3(0, 1, 0);
 	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
-		renderer.push();
-			renderer.translate(parent->pos);
-			renderer.rotate(parent->calculateHeading(playerPos), headingAxis);
+		if (isVisible) {
+			renderer.push();
+				renderer.translate(parent->pos);
+				renderer.rotate(parent->calculateHeading(playerPos), headingAxis);
 
-			renderer.translate(this->pos);
-			renderer.scale(vec3(this->widthRatio * this->yScale * 0.75, this->yScale, 1));
-			renderer.translate(vec3(-0.5, -0.5, 0));
-			renderer.quad();
-		renderer.pop();
+				renderer.translate(this->pos);
+				renderer.scale(vec3(this->widthRatio * this->yScale * 0.75, this->yScale, 1));
+				renderer.translate(vec3(-0.5, -0.5, 0));
+				renderer.quad();
+			renderer.pop();
+		}
 	}
 
 	vec3 getWorldPos(vec3 playerPos) {
@@ -83,6 +87,18 @@ struct Page : public RenderingItem {
 
 		return toPlayer * 0.1f + parent->getWorldPos(playerPos);
 	}
+
+	bool isPlayerClose(vec3 playerPos) {
+		vec3 toPlayer= playerPos - parent->getWorldPos(playerPos);
+
+		if (length(toPlayer) <= playerCloseRadius) {
+			return true;
+		}
+
+		return false;
+	}
+
+	float playerCloseRadius= 1.0f;
 
 	Tree* parent;
 };
@@ -456,6 +472,23 @@ class Viewer : public Window {
     void scroll(float dx, float dy) {
     }
 
+		void checkPageProximity() {
+			for (auto& page: pages) {
+				// collect a page
+				if (page.isPlayerClose(player.getPos()) && keyIsDown(GLFW_KEY_E) && page.isVisible) {
+					page.isVisible= false;
+					player.incrementPagesCollected();
+					cout << player.getPagesCollected() << endl;
+				}
+			}
+		}
+
+		void isWin() {
+			if (player.getPagesCollected() == 8) {
+				gameStatus= WIN;
+			}
+		}
+
     // handles WASD release
     void keyUp(int key, int mods) {
 			if (key == GLFW_KEY_LEFT_SHIFT) {
@@ -617,77 +650,87 @@ class Viewer : public Window {
     }
 
     void draw() {
-			// update player position
-			updateLookPos();
+			if (gameStatus == ONGOING) {
+				// update player position
+				updateLookPos();
 
-      mat4 VM= renderer.viewMatrix();
-      vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
-      vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
-      vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
+				mat4 VM= renderer.viewMatrix();
+				vec3 xAxis= vec3(VM[0][0], VM[1][0], VM[2][0]);
+				vec3 yAxis= vec3(VM[0][1], VM[1][1], VM[2][1]);
+				vec3 zAxis= vec3(VM[0][2], VM[1][2], VM[2][2]);
 
-      player.setCameraXAxis(xAxis);
-      player.setCameraYAxis(yAxis);
-      player.setCameraZAxis(zAxis);
+				player.setCameraXAxis(xAxis);
+				player.setCameraYAxis(yAxis);
+				player.setCameraZAxis(zAxis);
 
-	
-			quat orientation= quat(vec3(-player.getCameraElevation(), player.getCameraAzimuth(), 0));
-			orientation= normalize(orientation);
-
-
-      updatePlayerPosition();
-
-			lateUpdate();
-
-      player.setCameraAspect(((float) width()) / height());
-      renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
-        player.getCameraNear(), player.getCameraFar());
-      
-      renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
-
-
-      // draw plane
-			
-			renderer.beginShader("spotlight");
-				initSpotlightShader("dead_grass", vec2(planeScale.x, planeScale.z), false);
-				renderer.push();
-					renderer.translate(planeLocation);
-					renderer.scale(planeScale);
-					renderer.cube();
-				renderer.pop();
-			renderer.endShader();
-
-
-			drawRenderingItems();
-
-			
-			renderer.beginShader("spotlight");
-				renderer.push();
-				renderer.translate(player.getPos());
-				renderer.rotate(orientation);
-				for (Object &child: player.getChildren()) {
-					initSpotlightShader(child.getTexture(), vec2(1), false);
-						renderer.push();
-							renderer.translate(child.pos);
-							renderer.scale(child.scale);
-							renderer.translate((-child.getMidPoint()));
-							renderer.mesh(child.getMesh());
-						renderer.pop();
-					renderer.pop();
-				}
-			renderer.endShader();
-			
 		
+				quat orientation= quat(vec3(-player.getCameraElevation(), player.getCameraAzimuth(), 0));
+				orientation= normalize(orientation);
 
-			/*	
-			renderer.beginShader("spotlight");
-				initSpotlightShader(slenderman.getTexture(), vec2(1));
-				renderer.push();
-					renderer.translate(slenderman.pos);
-					renderer.rotate(slenderman.calculateHeading(player.getPos()), slenderman.headingAxis);
-					slenderman.render(renderer, planeLocation.y);
-				renderer.pop();
-			renderer.endShader();
-			*/
+				checkPageProximity();
+
+				isWin();
+
+				updatePlayerPosition();
+
+				lateUpdate();
+
+				player.setCameraAspect(((float) width()) / height());
+				renderer.perspective(player.getCameraFOV(), player.getCameraAspect(), 
+					player.getCameraNear(), player.getCameraFar());
+				
+				renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
+
+
+				// draw plane
+				
+				renderer.beginShader("spotlight");
+					initSpotlightShader("dead_grass", vec2(planeScale.x, planeScale.z), false);
+					renderer.push();
+						renderer.translate(planeLocation);
+						renderer.scale(planeScale);
+						renderer.cube();
+					renderer.pop();
+				renderer.endShader();
+
+
+				drawRenderingItems();
+
+				
+				renderer.beginShader("spotlight");
+					renderer.push();
+					renderer.translate(player.getPos());
+					renderer.rotate(orientation);
+					for (Object &child: player.getChildren()) {
+						initSpotlightShader(child.getTexture(), vec2(1), false);
+							renderer.push();
+								renderer.translate(child.pos);
+								renderer.scale(child.scale);
+								renderer.translate((-child.getMidPoint()));
+								renderer.mesh(child.getMesh());
+							renderer.pop();
+						renderer.pop();
+					}
+				renderer.endShader();
+				
+			
+
+				/*	
+				renderer.beginShader("spotlight");
+					initSpotlightShader(slenderman.getTexture(), vec2(1));
+					renderer.push();
+						renderer.translate(slenderman.pos);
+						renderer.rotate(slenderman.calculateHeading(player.getPos()), slenderman.headingAxis);
+						slenderman.render(renderer, planeLocation.y);
+					renderer.pop();
+				renderer.endShader();
+				*/
+			} else if (gameStatus == WIN) {
+				cout << "win" << endl;
+			} else {
+				cout << "lose" << endl;
+
+			}
 
     }
 
