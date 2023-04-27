@@ -44,7 +44,7 @@ struct Billboard : public RenderingItem {
 		return thetaY;
 	}
 
-	virtual void render(Renderer& renderer, float planeLocationY) {
+	void render(Renderer& renderer, float planeLocationY, vec3 playerPos) {
 		renderer.scale(vec3(this->widthRatio * this->yScale, this->yScale, 1));
 		renderer.translate(vec3(-0.5, -0.5, 0));
 		renderer.quad();
