@@ -2,7 +2,7 @@
 
 Here is a very simple take on Mark J. Hadley's _Slenderman: The Eight Pages_, which is a horror game based around a creepy pasta character called Slenderman. The objective of the game is to collect all 8 pages before Slenderman catches you and you lose. 
 
-You are spawned at the center of a forest and on 8 different trees are pages that you have to collect. Warning: once you collect your first page, Slenderman will start to appear around the forest. AVOID looking at him, or you will lose health. The more direct you look at him, the more your health will diminish. Be careful, you will not know your current hp, but it will recover over time slowly as you avoid Slenderman. 
+You are spawned at the center of a forest and on 8 different trees are pages that you have to collect. Warning: once you collect your first page, Slenderman will start to appear around the forest. AVOID looking at him, or you will lose health. If you look directly at Slenderman, your health will deplete in a couple of seconds. Be careful, as you will not know your current hp. Your hp will recover slowly over time as you avoid Slenderman. 
 
 Controls:
 - 'WASD' to move
