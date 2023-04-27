@@ -39,6 +39,7 @@ struct FogInfo {
   vec3 color; // color of fog
 };
 uniform FogInfo Fog;
+uniform bool useFog;
 
 
 uniform vec2 uvScale;
@@ -101,16 +102,22 @@ vec4 phongSpot() {
 
 void main()
 {
-	// fog from camera
-	float dist= abs(p_eye.z);
-  float fogFactor;
-  // linear fog factor
-  fogFactor= (Fog.maxDist - dist) / (Fog.maxDist - Fog.minDist);
-  fogFactor= max(min(fogFactor, 1.0f), 0.0f);
   
 	vec4 phongColor= phongSpot();
 
-	vec3 color= mix(Fog.color, phongColor.xyz, fogFactor);
+	vec3 color= phongColor.xyz;
+
+	if (useFog) {
+		// fog from camera
+		float dist= abs(p_eye.z);
+		float fogFactor;
+		// linear fog factor
+		fogFactor= (Fog.maxDist - dist) / (Fog.maxDist - Fog.minDist);
+		fogFactor= max(min(fogFactor, 1.0f), 0.0f);
+		
+		color= mix(Fog.color, phongColor.xyz, fogFactor);
+	}
+	
 
   FragColor = vec4(color, phongColor.w);
 }

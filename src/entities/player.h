@@ -49,8 +49,10 @@ namespace assets {
       void moveForward(float dt) { this->pos= this->pos + velocity * dt * zAxis; };
       void moveBackward(float dt) { this->pos= this->pos - velocity * dt * zAxis; };
 
-      void setHealth(int health) { this->health= health; };
-      int getHealth() { return this->health; };
+      void setHealth(float health) { this->health= std::min(health, 100.0f); };
+			void decreaseHealth(float amount) { this->health-= amount; };
+			void increaseHealth(float amount) { this->health= std::min(health + amount, 100.0f); };
+      float getHealth() { return this->health; };
 
       float getVelocity() { return this->velocity; };
       void  setVelocity(float velocity) { this->velocity= velocity; };
@@ -96,7 +98,7 @@ namespace assets {
 			vec3 targetPosition= vec3(0);
 			
 
-      int health= 100; // player should always start with 100 health
+      float health= 100; // player should always start with 100 health
       float velocity= 1.0f;
       
       CameraInfo camera;

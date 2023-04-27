@@ -360,7 +360,7 @@ class Viewer : public Window {
 			renderer.beginShader("spotlight");
 				for (auto* item : renderingItems) {
 					if (item->isVisible) {
-						initSpotlightShader(item->texture, vec2(1), item->useAlpha);
+						initSpotlightShader(item->texture, vec2(1), item->useAlpha, item->useFog);
 						item->render(renderer, planeLocation.y, player.getPos());
 					}	
 				}
@@ -427,6 +427,7 @@ class Viewer : public Window {
 				vec3(0.283), quat(vec3(0, 0, 0)));
 			
 			slenderman.isVisible= false;
+			slenderman.useFog= false;
 
 			slenderman.pos= vec3(0, -0.5 + slenderman.getDimensions().y / 2, 0);
 
@@ -472,18 +473,18 @@ class Viewer : public Window {
 			if (player.getPagesCollected() > 0) {
 				if (slendermanVisibleTime < 0) {
 					//slendermanVisibleTime= randBound(9, 19);
-					slendermanVisibleTime= randBound(5, 10);
+					slendermanVisibleTime= randBound(1, 10);
 				}
 
 				if (slendermanSpawnTime < 0) {
 					//slendermanSpawnTime= randBound(25.0f, 48.0f);
-					slendermanSpawnTime= randBound(5, 10);
+					slendermanSpawnTime= randBound(1, 2);
 				}
 
-				cout << "spawn: " << slendermanSpawnTime << endl;
-				cout << "spawnTime: " << timeSinceLastSpawn << endl;
-				cout << "vis: " << slendermanVisibleTime << endl;
-				cout << "visTime: " << timeSinceVisibility << endl;
+				// cout << "spawn: " << slendermanSpawnTime << endl;
+				// cout << "spawnTime: " << timeSinceLastSpawn << endl;
+				// cout << "vis: " << slendermanVisibleTime << endl;
+				// cout << "visTime: " << timeSinceVisibility << endl;
 
 
 				// make him appear 
@@ -493,7 +494,7 @@ class Viewer : public Window {
 					vec3 k= vec3(0, 1, 0);
 
 					// want slenderman to spawn behind the player
-					float randAngle= glm::radians(randBound(160, 250));
+					float randAngle= glm::radians(randBound(180, 270));
 					float randRadius= randBound(2.2, 7.8);
 
 					vec3 vRot= v*cos(randAngle) +
@@ -527,6 +528,52 @@ class Viewer : public Window {
 			}
 		}
 
+		void checkPlayerLookingAtSlender() {
+			if (slenderman.isVisible) {
+				vec3 toSlender= slenderman.pos - player.getPos();
+				// get rid of the y axis, since his midpoint is higher anyway
+				toSlender.y= 0;
+
+				vec3 playerForward= player.getZAxis();
+
+				float slenderDotPlayer= dot(toSlender, playerForward);
+
+				// we are looking at some sort of slender
+				if (slenderDotPlayer > 0) {
+
+					float ratio= dot(toSlender, playerForward) / 
+						(length(toSlender) * length(playerForward));
+					
+					float angle= acos(ratio);
+
+					// fov of 70 to get hurt
+					if (angle < hurtAngle) {
+						// currently getting damaged
+						timeSinceDamage= 0.0f;
+
+						// should hurt the most when the angle is 0 :)
+						float hurtRatio= (hurtAngle - angle) / hurtAngle;
+
+						// will take directDmg per second if they stare directly at
+						// slender
+						player.decreaseHealth(hurtRatio * directDmg * dt());
+					} else {
+						if (timeSinceDamage >= timeToRecover) { 
+							player.increaseHealth(HPS * dt());
+						} else {
+							timeSinceDamage+= dt();
+						}
+					}
+				} else {
+					if (timeSinceDamage >= timeToRecover) { 
+						player.increaseHealth(HPS * dt());
+					} else {
+						timeSinceDamage+= dt();
+					}
+				}
+			}
+		}
+
 		void checkPageProximity() {
 			for (auto& page: pages) {
 				// collect a page
@@ -541,6 +588,12 @@ class Viewer : public Window {
 		void isWin() {
 			if (player.getPagesCollected() == 8) {
 				gameStatus= WIN;
+			}
+		}
+
+		void isLose() {
+			if (player.getHealth() <= 0) {
+				gameStatus= LOSE;
 			}
 		}
 
@@ -660,7 +713,7 @@ class Viewer : public Window {
       player.setZAxis(vec3(sin(azimuth), 0, cos(azimuth)));
     }
 
-    void initSpotlightShader(const std::string& texture, vec2 uvScale, bool useAlpha) {
+    void initSpotlightShader(const std::string& texture, vec2 uvScale, bool useAlpha, bool useFog) {
       vec3 Ka= vec3(0.1f);
       vec3 Kd= vec3(0.775f, 0.0f, 0.0f);
       vec3 Ks= vec3(0.1f, 0.1f, 0.1f);
@@ -702,6 +755,7 @@ class Viewer : public Window {
       // but I like the black fog better
       vec3 c= vec3(0.1f);
       renderer.setUniform("Fog.color", c);
+			renderer.setUniform("useFog", useFog);
     }
 
     void draw() {
@@ -718,13 +772,16 @@ class Viewer : public Window {
 				player.setCameraYAxis(yAxis);
 				player.setCameraZAxis(zAxis);
 
-		
 				quat orientation= quat(vec3(-player.getCameraElevation(), player.getCameraAzimuth(), 0));
 				orientation= normalize(orientation);
 
 				checkPageProximity();
+				
+				checkPlayerLookingAtSlender();
 
 				isWin();
+
+				isLose();
 
 				spawnSlender();
 
@@ -742,7 +799,7 @@ class Viewer : public Window {
 				// draw plane
 				
 				renderer.beginShader("spotlight");
-					initSpotlightShader("dead_grass", vec2(planeScale.x, planeScale.z), false);
+					initSpotlightShader("dead_grass", vec2(planeScale.x, planeScale.z), false, true);
 					renderer.push();
 						renderer.translate(planeLocation);
 						renderer.scale(planeScale);
@@ -759,7 +816,7 @@ class Viewer : public Window {
 					renderer.translate(player.getPos());
 					renderer.rotate(orientation);
 					for (Object &child: player.getChildren()) {
-						initSpotlightShader(child.getTexture(), vec2(1), false);
+						initSpotlightShader(child.getTexture(), vec2(1), false, true);
 							renderer.push();
 								renderer.translate(child.pos);
 								renderer.scale(child.scale);
@@ -813,6 +870,15 @@ class Viewer : public Window {
   protected:
     Player player;
     Object slenderman;
+
+		// the player will lose health 
+		float hurtAngle= radians(50.0f);
+		float directDmg= 35.0f;
+		// hp per second
+		float HPS= 3.0f;
+
+		float timeSinceDamage= 0.0f;
+		float timeToRecover= 2.0f;
 
 		// in seconds
 		float slendermanVisibleTime= -1.0f;
