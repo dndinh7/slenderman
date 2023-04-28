@@ -1222,7 +1222,7 @@ class Viewer : public Window {
 
 	// plane information
 	// change the plane xz information to make the game harder!
-	vec3 planeScale= vec3(10.0f, 0.01f, 10.0f);
+	vec3 planeScale= vec3(45.0f, 0.01f, 45.0f);
 	vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 	float xDim;
 	float zDim;
