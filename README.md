@@ -44,7 +44,9 @@ Player movement is created by rotating the player's x and z axis along the horiz
 
 The shader implements spotlight and fog, the former using a variant of the phong-shader model with a direction and FOV angle and the latter using the distance of objects from the viewer to proportionally hide objects.
 
-## Unique features 
+## Unique features
+
+https://user-images.githubusercontent.com/72237791/235053090-baa4251e-64c7-4b55-82d2-6cda4b1adcf2.mp4
 
 There is an entity called Slenderman who is textured, and he will randomly spawn behind the player once they have collected the first page. Slenderman's spawn is calculated using Rodrigues' rotation formula, which computes a point given a vector v and angle of rotation theta. 
 
@@ -99,6 +101,10 @@ I have also added sounds such as ambient cricket noise, flashlight button click,
 - Flashlight mesh and texture: https://sketchfab.com/3d-models/flashlight-texture-3116044b0cb74ab2a392cbefc53cb723#download
 
 - Grass texture: https://opengameart.org/content/64-billboard-grass-texture-and-mesh
+
+
+FINAL NOTES:
+Due to the addition of sound, this build only currently works with windows.
 
 
 
