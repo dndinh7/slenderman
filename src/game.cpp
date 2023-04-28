@@ -7,7 +7,8 @@
  * 
  * To control the player, use 'WASD' and right move button to pan the 
  * camera. You can turn the flashlight on and off using 'F'. You can 
- * run using 
+ * run using shift. You can collect pages when you're close enough with 'E'.
+ * Try to avoid looking at Slenderman and collect all 8 pages to win. 
  * 
  * References: 
  * https://superhedral.com/2021/10/30/lerping-cameras-in-unity/
@@ -15,6 +16,8 @@
  * https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
  * https://www.shadertoy.com/view/XtK3W3
  * 
+ * Author: David Dinh
+ * Date: April 27, 2023
 */
 
 

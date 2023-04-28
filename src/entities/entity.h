@@ -1,6 +1,7 @@
 /**
- * This class serves as the super class for the player and
- * the slenderman entities
+ * This class serves as the super class for the player and other
+ * entities, but Slenderman was just considered an object so that
+ * I could render it with the billboards 
 */
 
 #ifndef entity_H

@@ -1,8 +1,6 @@
 
 /**
- * This program acts as the superclass for the objects
- * 
- * 
+ * This program acts as the class for the objects 
 */
 
 #ifndef object_H
@@ -15,6 +13,12 @@ using namespace agl;
 using namespace glm;
 using namespace std;
 
+/**
+ * This class holds the basic informationa about an object that is to be rendered
+ * much like a billboard. I need to have the depth information and heading information
+ * so that I render from back to front. As well, this acts as the super class so I
+ * can include Slenderman object to render at the right depth
+*/
 struct RenderingItem {
 	RenderingItem() {};
 
@@ -47,6 +51,13 @@ struct RenderingItem {
 
 };
 
+/**
+ * Acts as a mesh model object class, primarily to hold the Slenderman.
+ * 
+ * This holds information such as rotation, scale, position, mesh, texture of
+ * the object.
+ * 
+*/
 struct Object : public RenderingItem{
   public:
 		Object() : RenderingItem(vec3(0), quat(vec3(0)), vec3(1)), pos(vec3(0)), scale(vec3(1)) {};
