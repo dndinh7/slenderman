@@ -621,7 +621,7 @@ class Viewer : public Window {
 		This function serves to spawn and despawn Slenderman at random
 		times behind the player. It uses Rodrigues's rotation formula
 		to find a point behind the player using a random angle between 
-		90-270, given the player's forward direction. 
+		60-300, given the player's forward direction. 
 	*/
     void spawnSlender() {
 		if (player.getPagesCollected() > 0) {
@@ -648,8 +648,8 @@ class Viewer : public Window {
 				vec3 k= vec3(0, 1, 0);
 
 				// want slenderman to spawn behind the player
-				float randAngle= glm::radians(randBound(90, 270));
-				float randRadius= randBound(2.2, 7.8);
+				float randAngle= glm::radians(randBound(60, 300));
+				float randRadius= randBound(1.5, 4.5);
 
 				vec3 vRot= v*cos(randAngle) +
 					cross(k, v)*sin(randAngle) +
@@ -796,6 +796,7 @@ class Viewer : public Window {
 			gameStatus= LOSE;
 			player.setPos(vec3(0, 0, 0));
 			player.setLookPos(vec3(0, 0, 1));
+			slenderman.pos = player.getLookPos() + vec3(0, -0.3f, 0);
 		}
 	}
 
@@ -1056,8 +1057,6 @@ class Viewer : public Window {
 
 			isWin();
 
-			isLose();
-
 			spawnSlender();
 
 			updatePlayerPosition();
@@ -1115,6 +1114,8 @@ class Viewer : public Window {
 				renderer.pop();
 			renderer.endShader();
 			*/
+
+			isLose();
 		} else if (gameStatus == WIN) {
 			renderer.fontColor(glm::vec4(0.95, 1.0, 0, 0.8));
 			std::string message = "YOU WIN! :]";
@@ -1129,7 +1130,7 @@ class Viewer : public Window {
 
 			renderer.lookAt(player.getPos(), player.getLookPos(), player.getCameraUp());
 
-			slenderman.pos= player.getLookPos() + vec3(0, -0.3f, 0);
+
 
 			/*
 				renderer.fontColor(glm::vec4(0.95, 0.0, 0, 0.8));
@@ -1218,7 +1219,7 @@ class Viewer : public Window {
 
 	// plane information
 	// change the plane xz information to make the game harder!
-	vec3 planeScale= vec3(45.0f, 0.01f, 45.0f);
+	vec3 planeScale= vec3(10.0f, 0.01f, 10.0f);
 	vec3 planeLocation= vec3(0.0f, -0.5f, 0.0f);
 	float xDim;
 	float zDim;
