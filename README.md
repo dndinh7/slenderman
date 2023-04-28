@@ -91,7 +91,7 @@ I have also added sounds such as ambient cricket noise, flashlight button click,
 
 - Glitch shader toy used on losing screen and looking directly (within a 15 degree angle) at Slenderman in game: https://www.shadertoy.com/view/XtK3W3
 
-## Resources:
+## Assets:
 - Slenderman model: https://free3d.com/3d-model/slenderman-from-slender-the-arrival-79467.html
 
 - Fir tree texture: https://www.pngwing.com/en/free-png-ykplr
@@ -101,6 +101,14 @@ I have also added sounds such as ambient cricket noise, flashlight button click,
 - Flashlight mesh and texture: https://sketchfab.com/3d-models/flashlight-texture-3116044b0cb74ab2a392cbefc53cb723#download
 
 - Grass texture: https://opengameart.org/content/64-billboard-grass-texture-and-mesh
+
+- Slenderman static sound: https://www.myinstants.com/en/instant/slender-static-effect/?utm_source=copy&utm_medium=share
+
+- Flashlight click noise: https://freesound.org/people/baidonovan/sounds/187335/
+
+- Crickets at night in nature noise: https://mixkit.co/free-sound-effects/night/
+
+- Glitch static noise: https://mixkit.co/free-sound-effects/static/
 
 
 FINAL NOTES:
